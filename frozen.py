@@ -6,15 +6,18 @@ from telethon import TelegramClient, events, errors
 from asyncio import Semaphore
 import random
 
-# ========== CONFIG ==========
-BOT_TOKEN = 'YOUR_BOT_TOKEN'
+# ================= CONFIG =================
+BOT_TOKEN = 'YOUR_BOT_TOKEN'             # Bot token from BotFather
+BOT_API_ID = 123456                       # Minimal API ID for running bot session
+BOT_API_HASH = 'abcdef1234567890'        # Minimal API Hash for bot session
 ADMIN_ID = 6577308099
 TEMP_FOLDER = 'temp_sessions'
-os.makedirs(TEMP_FOLDER, exist_ok=True)
-API_FILE = 'api_list.json'
-MAX_CONCURRENT = 5  # Max concurrent account checks to avoid FloodWait
+API_FILE = 'api_list.json'               # Dynamic account-checking APIs stored here
+MAX_CONCURRENT = 5                        # Max concurrent account checks
 
-# ========== API HANDLING ==========
+os.makedirs(TEMP_FOLDER, exist_ok=True)
+
+# ================= API HANDLING =================
 def load_apis():
     if not os.path.exists(API_FILE):
         return []
@@ -36,7 +39,7 @@ def remove_api(api_id):
     api_list = [a for a in api_list if a['api_id'] != api_id]
     save_apis(api_list)
 
-# ========== CHECK ACCOUNT FUNCTION ==========
+# ================= ACCOUNT CHECK FUNCTION =================
 async def check_account(file_path, sem):
     async with sem:
         api = get_next_api()
@@ -50,22 +53,22 @@ async def check_account(file_path, sem):
             return (file_path, True, f"{me.id} | {me.username or 'No Username'}")
         except (errors.AuthKeyDuplicatedError, errors.PhoneNumberBannedError,
                 errors.SessionPasswordNeededError, errors.FloodWaitError):
-            # Remove API if blocked/invalid
             remove_api(api['api_id'])
             return (file_path, False, f"API_BLOCKED: {api['api_id']}")
         except Exception:
             return (file_path, False, os.path.basename(file_path))
 
-# ========== BOT ==========
-bot = TelegramClient('bot_session', 0, '').start(bot_token=BOT_TOKEN)
+# ================= TELEGRAM BOT =================
+bot = TelegramClient('bot_session', BOT_API_ID, BOT_API_HASH).start(bot_token=BOT_TOKEN)
 
-# ======= START COMMAND =======
+# -------- START COMMAND --------
 @bot.on(events.NewMessage(pattern='/start'))
 async def start(event):
     if event.sender_id != ADMIN_ID:
         return await event.reply("You are not authorized.")
     await event.reply(
-        "Welcome! Upload your season files (multiple allowed). Admin commands:\n"
+        "Welcome! Upload your season files (multiple allowed).\n\n"
+        "Admin commands:\n"
         "/add_api <api_id> <api_hash>\n"
         "/remove_api <api_id>\n"
         "/list_api\n"
@@ -73,12 +76,11 @@ async def start(event):
         "/help - Show all bot guidelines and commands"
     )
 
-# ======= HELP COMMAND =======
+# -------- HELP COMMAND --------
 @bot.on(events.NewMessage(pattern='/help'))
 async def help_cmd(event):
     if event.sender_id != ADMIN_ID:
         return await event.reply("You are not authorized.")
-
     help_text = (
         "🤖 **Bot Usage Guide & Commands**\n\n"
         "**Admin Commands:**\n"
@@ -102,7 +104,7 @@ async def help_cmd(event):
     )
     await event.reply(help_text)
 
-# ======= ADMIN COMMANDS =======
+# -------- ADMIN COMMANDS --------
 @bot.on(events.NewMessage(pattern='/add_api'))
 async def add_api(event):
     if event.sender_id != ADMIN_ID:
@@ -146,12 +148,11 @@ async def reset_api(event):
         return
     await event.reply("API rotation reset manually. (Rotation handled automatically)")
 
-# ======= FILE UPLOAD / CHECKING =======
+# -------- FILE UPLOAD / CHECKING --------
 @bot.on(events.NewMessage)
 async def handle_upload(event):
     if event.sender_id != ADMIN_ID:
         return
-
     if not event.message.file:
         return
 
@@ -208,6 +209,6 @@ async def handle_upload(event):
     for f in session_files:
         os.remove(f)
 
-# ======= RUN BOT =======
+# ================= RUN BOT =================
 print("Bot is running...")
 bot.run_until_disconnected()
