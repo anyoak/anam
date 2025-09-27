@@ -1,14 +1,14 @@
 {
-  "BD": {
-    "proxy_type": "http",
-    "addr": "proxy-bd.example.com",
-    "port": 8080,
-    "username": "user",
-    "password": "pass"
+  "TG": {
+    "proxy_type": "socks5",
+    "addr": "93.190.141.105",
+    "port": 9999,
+    "username": "mmk5faqpdh-corp.mobile.res-country-TG-state-3653224-city-3652462-hold-query",
+    "password": "vTFdOUgHfFeHFHA8"
   },
   "SA": {
     "proxy_type": "socks5",
-    "addr": "proxy-sa.example.com",
-    "port": 1080
+    "addr": "mmk5faqpdh-corp.mobile.res-country-SA-state-3653224-city-3652462-hold-query",
+    "port": 9999
   }
 }
