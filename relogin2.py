@@ -14,11 +14,11 @@ from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 
 # ========== CONFIG ==========
-API_ID = 123456               # <-- your my.telegram.org API ID
-API_HASH = "your_api_hash"    # <-- your API HASH
-BOT_TOKEN = "your_bot_token"  # <-- your bot token
-ADMIN_ID = 6577308099         # only this ID can control the bot
-TARGET_GROUP = -1001234567890 # group ID to forward messages
+API_ID = 20598937               # <-- your my.telegram.org API ID
+API_HASH = "0c3a9153ca8295883665459e4c22c674"    # <-- your API HASH
+BOT_TOKEN = "8434544662:AAGGSbiMBkNsz7pPd4U_prQAipDgC00NvTg"  # <-- your bot token
+ADMIN_ID = 7632476151         # only this ID can control the bot
+TARGET_GROUP = -1002425974904 # group ID to forward messages
 SESSIONS_DIR = "sessions"     # folder to store session files
 # ============================
 
