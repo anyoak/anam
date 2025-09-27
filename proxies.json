@@ -1,0 +1,14 @@
+{
+  "BD": {
+    "proxy_type": "http",
+    "addr": "proxy-bd.example.com",
+    "port": 8080,
+    "username": "user",
+    "password": "pass"
+  },
+  "SA": {
+    "proxy_type": "socks5",
+    "addr": "proxy-sa.example.com",
+    "port": 1080
+  }
+}
