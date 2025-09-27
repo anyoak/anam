@@ -6,38 +6,40 @@ import re
 import json
 import tarfile
 import zipfile
-import magic  # python-magic for MIME detection
-import rarfile  # optional, needs unrar installed
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import ContentType
+import magic
+import rarfile
+from aiogram import Bot, Dispatcher, types, Router
+from aiogram.filters import Command
+from aiogram.enums import ContentType
+from aiogram.types import Message
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 
 # ========== CONFIG ==========
-API_ID = 20598937               # <-- your my.telegram.org API ID
-API_HASH = "0c3a9153ca8295883665459e4c22c674"    # <-- your API HASH
-BOT_TOKEN = "8434544662:AAGGSbiMBkNsz7pPd4U_prQAipDgC00NvTg"  # <-- your bot token
-ADMIN_ID = 7632476151         # only this ID can control the bot
-TARGET_GROUP = -1002425974904 # group ID to forward messages
-SESSIONS_DIR = "sessions"     # folder to store session files
+API_ID = 20598937
+API_HASH = "0c3a9153ca8295883665459e4c22c674"
+BOT_TOKEN = "8434544662:AAGGSbiMBkNsz7pPd4U_prQAipDgC00NvTg"
+ADMIN_ID = 7632476151
+TARGET_GROUP = -1002425974904
+SESSIONS_DIR = "sessions"
 # ============================
 
 if not os.path.exists(SESSIONS_DIR):
     os.makedirs(SESSIONS_DIR)
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()  # Fixed: No bot parameter in aiogram 2.x
+dp = Dispatcher()  # aiogram 3.x style - no bot parameter
+router = Router()
+dp.include_router(router)
 
 # store active Telethon clients
-clients = {}  # key: session_name/phone, value: TelegramClient instance
+clients = {}
 
-# --- Utilities ------------------------------------------------
+# --- Utilities (keep your existing utility functions as they are) ---
 def safe_name(name: str) -> str:
-    """Make a file-system safe name."""
     return re.sub(r'[^A-Za-z0-9_.-]', '_', name)
 
 def extract_archive(file_path: str, dest_dir: str):
-    """Extract common archive types (zip, tar, rar) into dest_dir."""
     try:
         if zipfile.is_zipfile(file_path):
             with zipfile.ZipFile(file_path, 'r') as z:
@@ -59,7 +61,6 @@ def extract_archive(file_path: str, dest_dir: str):
     return False
 
 def find_session_files(root_dir: str):
-    """Find .session files and similar in a folder."""
     found = []
     for dirpath, _, filenames in os.walk(root_dir):
         for fn in filenames:
@@ -67,10 +68,9 @@ def find_session_files(root_dir: str):
                 found.append(('file', os.path.join(dirpath, fn), fn))
     return found
 
-BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')  # regex for long base64-like strings
+BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')
 
 def find_string_sessions_in_text(root_dir: str):
-    """Find string session tokens inside text/JSON files."""
     found = []
     for dirpath, _, filenames in os.walk(root_dir):
         for fn in filenames:
@@ -81,7 +81,6 @@ def find_string_sessions_in_text(root_dir: str):
                     continue
                 with open(full, 'r', errors='ignore') as f:
                     txt = f.read()
-                # try JSON parsing
                 try:
                     j = json.loads(txt)
                     for key in ['string_session', 'session', 'session_string', 'auth']:
@@ -89,7 +88,6 @@ def find_string_sessions_in_text(root_dir: str):
                             found.append(('string', j[key], f"{fn}:{key}"))
                 except Exception:
                     pass
-                # fallback: regex
                 for m in BASE64_RE.findall(txt):
                     if len(m) > 80:
                         found.append(('string', m, f"{fn}:token"))
@@ -98,7 +96,6 @@ def find_string_sessions_in_text(root_dir: str):
     return found
 
 async def start_telethon_from_file(session_path: str, session_name: str):
-    """Start Telethon client from a .session file."""
     dest_base = os.path.join(SESSIONS_DIR, safe_name(session_name))
     try:
         shutil.copy(session_path, dest_base + '.session')
@@ -128,7 +125,6 @@ async def start_telethon_from_file(session_path: str, session_name: str):
         return False
 
 async def start_telethon_from_string(session_string: str, session_name: str):
-    """Start Telethon client from a StringSession."""
     try:
         ss = StringSession(session_string)
         client = TelegramClient(ss, API_ID, API_HASH)
@@ -151,17 +147,17 @@ async def start_telethon_from_string(session_string: str, session_name: str):
         print("Start client from string failed:", e)
         return False
 
-# ========== Bot Handlers ==========
-@dp.message_handler(commands=['start'])
-async def cmd_start(message: types.Message):
+# ========== Bot Handlers (UPDATED FOR aiogram 3.x) ==========
+@router.message(Command("start"))
+async def cmd_start(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
     await message.reply(
         "✅ Session manager ready. Send me .session / zip / tar / rar / txt / json files and I will start the sessions automatically."
     )
 
-@dp.message_handler(commands=['list'])
-async def cmd_list(message: types.Message):
+@router.message(Command("list"))
+async def cmd_list(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
     if clients:
@@ -170,8 +166,8 @@ async def cmd_list(message: types.Message):
         txt = "Active sessions:\n (none)"
     await message.reply(txt)
 
-@dp.message_handler(commands=['stop'])
-async def cmd_stop(message: types.Message):
+@router.message(Command("stop"))
+async def cmd_stop(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
     for name, client in list(clients.items()):
@@ -182,9 +178,8 @@ async def cmd_stop(message: types.Message):
         clients.pop(name, None)
     await message.reply("✅ All sessions stopped.")
 
-@dp.message_handler(commands=['logout'])
-async def cmd_logout(message: types.Message):
-    """Logout only from this bot/server device. Do not affect other devices. Do not delete session file."""
+@router.message(Command("logout"))
+async def cmd_logout(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
 
@@ -197,21 +192,16 @@ async def cmd_logout(message: types.Message):
     client = clients.get(session_name)
     if client:
         try:
-            # Only disconnect this local client
             await client.disconnect()
         except:
             pass
-
-        # Remove from active clients dictionary
         clients.pop(session_name, None)
-
-        # Do NOT delete session file; keep it safe for future use
         await message.reply(f"✅ Logged out from bot/server device only: {session_name}")
     else:
         await message.reply(f"❌ No active session found with name: {session_name}")
 
-@dp.message_handler(content_types=ContentType.DOCUMENT)
-async def handle_document(message: types.Message):
+@router.message(lambda message: message.content_type == ContentType.DOCUMENT)
+async def handle_document(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
 
@@ -221,8 +211,7 @@ async def handle_document(message: types.Message):
     saved_path = os.path.join(SESSIONS_DIR, safe_fname)
 
     await message.reply("📥 Upload received. Processing...")
-
-    await doc.download(destination_file=saved_path)
+    await bot.download(file=doc, destination=saved_path)
 
     tempdir = tempfile.mkdtemp(prefix="sess_extract_")
     try:
@@ -270,10 +259,10 @@ async def handle_document(message: types.Message):
         except:
             pass
 
-# ========== Run bot ==========
+# ========== Run bot (UPDATED FOR aiogram 3.x) ==========
 async def main():
     print("Bot running...")
-    await dp.start_polling(bot)  # Pass bot to start_polling in aiogram 2.x
+    await dp.start_polling(bot)  # Pass bot to start_polling
 
 if __name__ == "__main__":
     asyncio.run(main())
