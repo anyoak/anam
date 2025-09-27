@@ -30,8 +30,8 @@ from typing import Dict, List, Optional, Tuple
 # ==================== CONFIGURATION ====================
 API_TOKEN = "8397203663:AAHePay7u3uqCAmh2AfSVXTnomMC5O6ZeQw"
 ADMIN_ID = 6083895678  # Your Admin ID
-API_ID = 25403443
-API_HASH = "79908b532fe9662404142fd94bf494ec"
+API_ID = 22065708
+API_HASH = "7dbed5a148f3ae11eea9f58bff71b485"
 
 # Channel Configuration
 PRIVATE_CHANNEL_LINK = "https://t.me/+9M4KaQILn7FhNDY1"
