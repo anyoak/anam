@@ -28,8 +28,8 @@ import json
 from typing import Dict, List, Optional, Tuple
 
 # ==================== CONFIGURATION ====================
-API_TOKEN = "YOUR_BOT_TOKEN_HERE"
-ADMIN_ID = 123456789  # Your Admin ID
+API_TOKEN = "8397203663:AAHePay7u3uqCAmh2AfSVXTnomMC5O6ZeQw"
+ADMIN_ID = 6083895678  # Your Admin ID
 API_ID = 25403443
 API_HASH = "79908b532fe9662404142fd94bf494ec"
 
@@ -45,9 +45,9 @@ SPAM_BOT = "@spambot"
 
 # Financial Configuration
 MIN_WITHDRAW = 2.0
-USD_TO_TRX = 10.0
-USD_TO_BDT = 117.0
-USD_TO_PKR = 278.0
+USD_TO_TRX = 2.78
+USD_TO_BDT = 122.0
+USD_TO_PKR = 278.5
 
 # Database and Files
 DB_FILE = "session_bot.db"
