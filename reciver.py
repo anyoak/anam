@@ -28,10 +28,10 @@ import json
 from typing import Dict, List, Optional, Tuple
 
 # ==================== CONFIGURATION ====================
-API_TOKEN = "8397203663:AAHePay7u3uqCAmh2AfSVXTnomMC5O6ZeQw"
-ADMIN_ID = 6083895678  # Your Admin ID
+API_TOKEN = "8397203663:AAHePu3uqCA***mh2AfSVXTnomMC5O6ZeQw"
+ADMIN_ID = 608389**5678  # Your Admin ID
 API_ID = 25403443
-API_HASH = "79908b532fe9662404142fd94bf494ec"
+API_HASH = "79908b532fe96***404142fd94bf494ec"
 
 # Channel Configuration
 PRIVATE_CHANNEL_LINK = "https://t.me/+9M4KaQILn7FhNDY1"
