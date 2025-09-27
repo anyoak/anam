@@ -26,7 +26,7 @@ if not os.path.exists(SESSIONS_DIR):
     os.makedirs(SESSIONS_DIR)
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()  # Fixed: No bot parameter in aiogram 2.x
 
 # store active Telethon clients
 clients = {}  # key: session_name/phone, value: TelegramClient instance
@@ -273,8 +273,7 @@ async def handle_document(message: types.Message):
 # ========== Run bot ==========
 async def main():
     print("Bot running...")
-    polling = asyncio.create_task(dp.start_polling())
-    await polling
+    await dp.start_polling(bot)  # Pass bot to start_polling in aiogram 2.x
 
 if __name__ == "__main__":
     asyncio.run(main())
