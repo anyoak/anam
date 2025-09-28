@@ -27,21 +27,21 @@ import concurrent.futures
 from threading import Lock
 
 # Configuration
-API_TOKEN = "YOUR_BOT_TOKEN_HERE"
-ADMIN_ID = 123456789
-API_ID = 1234567
-API_HASH = "YOUR_API_HASH_HERE"
-SESSION_GROUP_ID = -1002845725805
-WITHDRAW_GROUP_ID = -1002741068000
-CHANNEL_URL = "https://t.me/tx_receivers_news"
-CHANNEL_USERNAME = "@tx_receivers_news"
+API_TOKEN = "8397203663:AAHePay7u3uqCAmh2AfSVXTnomMC5O6ZeQw"
+ADMIN_ID = 6083895678
+API_ID = 27607610
+API_HASH = "11ec5af224e72c79c02db30b7661de7e"
+SESSION_GROUP_ID = -1003084355923
+WITHDRAW_GROUP_ID = -1002999572063
+CHANNEL_URL = "https://t.me/+9M4KaQILn7FhNDY1"
+CHANNEL_USERNAME = "@telecatch"
 SPAM_BOT = "@SpamBot"
 
 MIN_WITHDRAW = 2.0
 DB_FILE = "session_bot.db"
 
-USD_TO_TRX = 10.0
-USD_TO_BDT = 117.0
+USD_TO_TRX = 2.73
+USD_TO_BDT = 122.0
 USD_TO_PKR = 278.0
 
 SESSIONS_FOLDER = "sessions"
@@ -66,32 +66,32 @@ user_data_lock = Lock()
 # Comprehensive Proxy Database for All Countries
 PROXIES_DATABASE = {
     "BD": {
-        "proxy_type": "http",
-        "addr": "103.125.162.134",
-        "port": 8080,
-        "username": "bd_proxy_user",
-        "password": "bd_proxy_pass"
-    },
-    "SA": {
-        "proxy_type": "socks5", 
-        "addr": "45.95.99.24",
-        "port": 8007,
-        "username": "sa_proxy_user",
-        "password": "sa_proxy_pass"
-    },
-    "IN": {
-        "proxy_type": "http",
-        "addr": "103.148.210.246",
-        "port": 80,
-        "username": "in_proxy_user",
-        "password": "in_proxy_pass"
-    },
-    "US": {
         "proxy_type": "socks5",
-        "addr": "23.254.218.66",
-        "port": 443,
-        "username": "us_proxy_user", 
-        "password": "us_proxy_pass"
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-BD-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "EC": {
+        "proxy_type": "socks5", 
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-EC-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "BO": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-BO-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "HN": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-HN-state-3653224-city-3652462-hold-query", 
+        "password": "vTFdOUgHfFeHFHA8"
     },
     "TG": {
         "proxy_type": "socks5",
@@ -100,117 +100,117 @@ PROXIES_DATABASE = {
         "username": "mmk5faqpdh-corp.mobile.res-country-TG-state-3653224-city-3652462-hold-query",
         "password": "vTFdOUgHfFeHFHA8"
     },
-    "CN": {
-        "proxy_type": "http",
-        "addr": "114.231.45.138",
-        "port": 8089,
-        "username": "cn_proxy_user",
-        "password": "cn_proxy_pass"
-    },
-    "RU": {
-        "proxy_type": "socks5",
-        "addr": "95.165.238.48",
-        "port": 1080,
-        "username": "ru_proxy_user",
-        "password": "ru_proxy_pass"
-    },
-    "GB": {
-        "proxy_type": "http",
-        "addr": "51.89.215.137",
-        "port": 8080,
-        "username": "gb_proxy_user",
-        "password": "gb_proxy_pass"
-    },
-    "DE": {
-        "proxy_type": "socks5",
-        "addr": "185.199.229.156",
-        "port": 7492,
-        "username": "de_proxy_user",
-        "password": "de_proxy_pass"
-    },
-    "FR": {
-        "proxy_type": "http",
-        "addr": "51.159.115.233",
-        "port": 3128,
-        "username": "fr_proxy_user",
-        "password": "fr_proxy_pass"
-    },
-    "JP": {
-        "proxy_type": "socks5",
-        "addr": "133.18.201.69",
-        "port": 1080,
-        "username": "jp_proxy_user",
-        "password": "jp_proxy_pass"
-    },
-    "KR": {
-        "proxy_type": "http",
-        "addr": "121.134.198.156",
-        "port": 8080,
-        "username": "kr_proxy_user",
-        "password": "kr_proxy_pass"
-    },
-    "AE": {
-        "proxy_type": "socks5",
-        "addr": "94.130.219.95",
-        "port": 1080,
-        "username": "ae_proxy_user",
-        "password": "ae_proxy_pass"
-    },
-    "TR": {
-        "proxy_type": "http",
-        "addr": "176.235.99.13",
-        "port": 9090,
-        "username": "tr_proxy_user",
-        "password": "tr_proxy_pass"
-    },
-    "BR": {
-        "proxy_type": "socks5",
-        "addr": "177.55.255.21",
-        "port": 1080,
-        "username": "br_proxy_user",
-        "password": "br_proxy_pass"
-    },
-    "NG": {
-        "proxy_type": "http",
-        "addr": "154.113.121.122",
-        "port": 80,
-        "username": "ng_proxy_user",
-        "password": "ng_proxy_pass"
-    },
     "EG": {
         "proxy_type": "socks5",
-        "addr": "41.65.251.86",
-        "port": 1080,
-        "username": "eg_proxy_user",
-        "password": "eg_proxy_pass"
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-EG-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
     },
-    "PK": {
-        "proxy_type": "http",
-        "addr": "110.93.214.28",
-        "port": 8080,
-        "username": "pk_proxy_user",
-        "password": "pk_proxy_pass"
-    },
-    "ID": {
+    "GH": {
         "proxy_type": "socks5",
-        "addr": "139.255.21.74",
-        "port": 1080,
-        "username": "id_proxy_user",
-        "password": "id_proxy_pass"
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-GH-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "KE": {
+        "proxy_type": "http",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-KE-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "IL": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-IL-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "KH": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-KH-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "BY": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-BY-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "SA": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-SA-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "SI": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-SI-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
     },
     "VN": {
         "proxy_type": "http",
-        "addr": "14.241.231.205",
-        "port": 8080,
-        "username": "vn_proxy_user",
-        "password": "vn_proxy_pass"
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-VN-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "TN": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-TN-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "SV": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-SV-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "PT": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-PT-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "NP": {
+        "proxy_type": "http",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-NP-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "BZ": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-BZ-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
+    },
+    "PA": {
+        "proxy_type": "socks5",
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-PA-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
     },
     "TH": {
         "proxy_type": "socks5",
-        "addr": "58.8.168.150",
-        "port": 1080,
-        "username": "th_proxy_user",
-        "password": "th_proxy_pass"
+        "addr": "93.190.141.105",
+        "port": 9999,
+        "username": "mmk5faqpdh-corp.mobile.res-country-TH-state-3653224-city-3652462-hold-query",
+        "password": "vTFdOUgHfFeHFHA8"
     }
 }
 
@@ -254,7 +254,7 @@ DEVICE_DATABASE = {
 
 # Helper functions
 def generate_random_password():
-    return "@Riyad12"
+    return "G112200"
 
 def get_country_proxy(country_code):
     """Get proxy configuration for specific country"""
