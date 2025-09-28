@@ -70,148 +70,148 @@ PROXIES_DATABASE = {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-BD-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-FR-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "EC": {
         "proxy_type": "socks5", 
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-EC-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-EC-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "BO": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-BO-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-BO-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "HN": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-HN-state-3653224-city-3652462-hold-query", 
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-HN-state-3012874-city-2988507-hold-query", 
+        "password": "LClgldxNZtO5Z26a"
     },
     "TG": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-TG-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-TG-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "EG": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-EG-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-EG-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "GH": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-GH-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-GH-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "KE": {
         "proxy_type": "http",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-KE-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-KE-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "IL": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-IL-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-IL-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "KH": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-KH-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-KH-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "BY": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-BY-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-BY-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "SA": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-SA-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-SA-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "SI": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-SI-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-SI-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "VN": {
         "proxy_type": "http",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-VN-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-VN-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "TN": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-TN-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-TN-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "SV": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-SV-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-SV-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "PT": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-PT-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-PT-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "NP": {
         "proxy_type": "http",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-NP-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-NP-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "BZ": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-BZ-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-BZ-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "PA": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-PA-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-PA-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     },
     "TH": {
         "proxy_type": "socks5",
         "addr": "93.190.141.105",
         "port": 9999,
-        "username": "mmk5faqpdh-corp.mobile.res-country-TH-state-3653224-city-3652462-hold-query",
-        "password": "vTFdOUgHfFeHFHA8"
+        "username": "fninjbovlr-corp.mobile.res-country-TH-state-3012874-city-2988507-hold-query",
+        "password": "LClgldxNZtO5Z26a"
     }
 }
 
@@ -879,7 +879,7 @@ async def auto_claim_balance(user_id, phone_number, message_id, session_filename
             frozen_message = f"""⚠️ <b>Important Notice</b>
 
 The account <code>{phone_number}</code> has been <b>frozen</b> due to a violation of Telegram guidelines.
-Please <b>do not add any balance</b> to this account."""
+<b>do Not add any balance</b> to this account.If you think this mistake contact support admin for any inquiry"""
             
             bot.edit_message_text(frozen_message, user_id, message_id, parse_mode="HTML")
             return
