@@ -1,15 +1,15 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import time, os
+import time
 
 # ---------- CONFIG ----------
-API_ID = 29680263           # তোমার Telegram API ID
+API_ID = 29680263          # Telegram API ID
 API_HASH = "a251c8203284c9fe7812f418ec8aa3a9"
-SESSION = "my_account"     # সেশন নাম
+SESSION = "my_account"     # Pyrogram session নাম
 OWNER_ID = 6577308099       # তোমার numeric Telegram ID
-COOLDOWN_SECONDS = 300     # ৫ মিনিট কুলডাউন
+COOLDOWN_SECONDS = 300     # ৫ মিনিট cooldown
 
-# ---------- TEXT ----------
+# ---------- OFFLINE MESSAGE ----------
 OFFLINE_MSG = (
     "💭 <b>I’m offline for a while...</b>\n"
     "<i>No replies, no calls — just a little peace & silence.</i>\n"
@@ -19,14 +19,14 @@ OFFLINE_MSG = (
 
 # ---------- VARIABLES ----------
 sleep_mode = False
-cooldowns = {}  # user_id : last_active_time (timestamp)
+cooldowns = {}  # user_id : last_active_time
 
 # ---------- INIT ----------
 app = Client(
     SESSION,
     api_id=API_ID,
     api_hash=API_HASH,
-    parse_mode="html"  # HTML parse_mode সব reply এর জন্য
+    parse_mode="html"  # HTML safe
 )
 
 # ===== COMMANDS =====
@@ -68,12 +68,17 @@ async def auto_reply(_, msg: Message):
     if msg.from_user and msg.from_user.is_bot:
         return
 
-    # গ্রুপে মেনশন ছাড়া বাদ
+    # গ্রুপে mention ছাড়া skip
     if msg.chat.type in ["supergroup", "group"] and not msg.mentioned:
         return
 
     try:
-        user_id = msg.chat.id
+        # Peer resolve safe
+        try:
+            user_id = msg.chat.id
+        except Exception:
+            return  # Invalid peer skip
+
         now = time.time()
         last_time = cooldowns.get(user_id, 0)
 
@@ -82,6 +87,8 @@ async def auto_reply(_, msg: Message):
             return
 
         cooldowns[user_id] = now
+
+        # Auto-reply
         await msg.reply_text(OFFLINE_MSG)
 
     except Exception as e:
