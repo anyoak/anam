@@ -9,7 +9,8 @@ SESSION = "my_account"     # Pyrogram session নাম
 OWNER_ID = 6577308099       # তোমার numeric Telegram ID
 COOLDOWN_SECONDS = 300     # ৫ মিনিট cooldown
 
-# ---------- OFFLINE MESSAGE (MarkdownV2) ----------
+# ---------- OFFLINE MESSAGE ----------
+# MarkdownV2 safe (bold, italic, code)
 OFFLINE_MSG = (
     "💭 *I’m offline for a while...*\n"
     "_No replies, no calls — just a little peace & silence._\n"
@@ -82,10 +83,11 @@ async def auto_reply(_, msg: Message):
 
         cooldowns[user_id] = now
 
-        # Auto-reply
+        # Auto-reply (MarkdownV2)
         await msg.reply_text(OFFLINE_MSG, parse_mode="markdown_v2")
 
     except Exception as e:
+        # কোনো crash হবে না, শুধু skip করবে
         print("⚠️ Auto-reply skipped due to:", e)
 
 # ===== MAIN =====
