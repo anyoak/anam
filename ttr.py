@@ -1,13 +1,13 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import asyncio, time, os
+import time, os
 
 # ---------- CONFIG ----------
-API_ID = 29680263             # তোমার Telegram API ID
+API_ID = 29680263           # তোমার Telegram API ID
 API_HASH = "a251c8203284c9fe7812f418ec8aa3a9"
-SESSION = "my_account"       # সেশন নাম (Pyrogram তৈরি করবে)
-OWNER_ID = 6577308099         # তোমার Numeric Telegram ID
-COOLDOWN_SECONDS = 300       # ৫ মিনিট কুলডাউন সময়
+SESSION = "my_account"     # সেশন নাম
+OWNER_ID = 6577308099       # তোমার numeric Telegram ID
+COOLDOWN_SECONDS = 300     # ৫ মিনিট কুলডাউন
 
 # ---------- TEXT ----------
 OFFLINE_MSG = (
@@ -19,40 +19,43 @@ OFFLINE_MSG = (
 
 # ---------- VARIABLES ----------
 sleep_mode = False
-cooldowns = {}   # user_id : last_active_time (timestamp)
+cooldowns = {}  # user_id : last_active_time (timestamp)
 
 # ---------- INIT ----------
-app = Client(SESSION, api_id=API_ID, api_hash=API_HASH)
-
+app = Client(
+    SESSION,
+    api_id=API_ID,
+    api_hash=API_HASH,
+    parse_mode="html"  # HTML parse_mode সব reply এর জন্য
+)
 
 # ===== COMMANDS =====
-
 @app.on_message(filters.command("sleep") & filters.user(OWNER_ID))
 async def activate_sleep(_, msg: Message):
     global sleep_mode
     sleep_mode = True
-    await msg.reply_text("😴 Sleep mode activated. Auto-reply is now <b>ON</b>.", parse_mode="html")
+    await msg.reply_text("😴 Sleep mode activated. Auto-reply is now <b>ON</b>.")
 
 @app.on_message(filters.command("off") & filters.user(OWNER_ID))
 async def deactivate_sleep(_, msg: Message):
     global sleep_mode
     sleep_mode = False
-    await msg.reply_text("☀️ Sleep mode deactivated. Auto-reply is now <b>OFF</b>.", parse_mode="html")
+    await msg.reply_text("☀️ Sleep mode deactivated. Auto-reply is now <b>OFF</b>.")
 
 @app.on_message(filters.command("status") & filters.user(OWNER_ID))
 async def status_check(_, msg: Message):
     status = "🟢 ON" if sleep_mode else "🔴 OFF"
-    await msg.reply_text(f"🛰️ <b>Auto-Reply Status:</b> {status}", parse_mode="html")
+    await msg.reply_text(f"🛰️ <b>Auto-Reply Status:</b> {status}")
 
+# ===== MARK SELF ACTIVE =====
 @app.on_message(filters.me)
 async def mark_active(_, msg: Message):
-    """যখন তুমি নিজে মেসেজ পাঠাবে, বট বুঝবে তুমি active।"""
+    """যখন তুমি নিজে মেসেজ পাঠাবে, ওই ইউজারের জন্য ৫ মিনিট auto-reply বন্ধ থাকবে।"""
     cooldowns[msg.chat.id] = time.time()
 
-
+# ===== AUTO-REPLY =====
 @app.on_message(filters.private | filters.group)
 async def auto_reply(_, msg: Message):
-    """অফলাইন রিপ্লাই সিস্টেম"""
     global sleep_mode
     if not sleep_mode:
         return
@@ -65,24 +68,24 @@ async def auto_reply(_, msg: Message):
     if msg.from_user and msg.from_user.is_bot:
         return
 
-    # গ্রুপে মেনশন না থাকলে বাদ
+    # গ্রুপে মেনশন ছাড়া বাদ
     if msg.chat.type in ["supergroup", "group"] and not msg.mentioned:
         return
 
-    user_id = msg.chat.id
-    now = time.time()
-    last_time = cooldowns.get(user_id, 0)
-
-    # কুলডাউন চেক (৫ মিনিট)
-    if now - last_time < COOLDOWN_SECONDS:
-        return
-
-    cooldowns[user_id] = now
     try:
-        await msg.reply_text(OFFLINE_MSG, parse_mode="html")
-    except Exception as e:
-        print(f"Failed to reply: {e}")
+        user_id = msg.chat.id
+        now = time.time()
+        last_time = cooldowns.get(user_id, 0)
 
+        # ৫ মিনিট cooldown চেক
+        if now - last_time < COOLDOWN_SECONDS:
+            return
+
+        cooldowns[user_id] = now
+        await msg.reply_text(OFFLINE_MSG)
+
+    except Exception as e:
+        print("⚠️ Auto-reply skipped due to:", e)
 
 # ===== MAIN =====
 if __name__ == "__main__":
