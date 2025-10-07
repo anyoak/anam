@@ -5,16 +5,14 @@ from datetime import datetime
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-_status = {"running": False, "processed": 0, "last": None}
-_stop_flag = False  # manual stop flag
-
 URL = "https://pack.chromaawards.com/sign-in"
 LOG_PATH = Path("logs.csv")
 
+_status = {"running": False, "processed": 0, "last": None}
+_stop_flag = False
 
 def _now_str():
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
-
 
 def read_lines(path):
     try:
@@ -23,49 +21,34 @@ def read_lines(path):
     except FileNotFoundError:
         return []
 
-
 def append_log_row(timestamp, email, phone, status, message):
-    header = ["timestamp", "email", "phone", "status", "message"]
+    header = ["timestamp","email","phone","status","message"]
     exists = LOG_PATH.exists()
     try:
         with open(LOG_PATH, "a", newline="", encoding="utf8") as f:
             writer = csv.writer(f)
             if not exists:
                 writer.writerow(header)
-            writer.writerow([timestamp, email, phone, status, message])
+            writer.writerow([timestamp,email,phone,status,message])
     except Exception as e:
-        print("Failed to write log:", e)
+        print("❌ Failed to write log:", e)
 
-
-def _safe_fill(page, selector, value, timeout=3000):
-    tries = 0
-    while tries < 3:
-        tries += 1
+def _safe_fill(page, selector, value, retries=3, timeout=5000):
+    for _ in range(retries):
         try:
+            page.wait_for_selector(selector, timeout=timeout)
             page.fill(selector, value, timeout=timeout)
             return True, "filled"
-        except PlaywrightTimeoutError:
+        except:
             time.sleep(0.5)
-        except Exception:
-            try:
-                el = page.locator(selector)
-                el.first.fill(value, timeout=timeout)
-                return True, "filled-fallback"
-            except Exception:
-                time.sleep(0.5)
-    return False, f"could not fill selector {selector}"
+    return False, f"could not fill {selector}"
 
-
-def _safe_click(page, button_text, timeout=3000):
-    tries = 0
-    while tries < 3:
-        tries += 1
+def _safe_click(page, button_text, retries=3, timeout=5000):
+    for _ in range(retries):
         try:
             page.locator(f"button:has-text('{button_text}')").first.click(timeout=timeout)
             return True, "clicked"
-        except PlaywrightTimeoutError:
-            time.sleep(0.5)
-        except Exception:
+        except:
             try:
                 btns = page.locator("button").all()
                 for b in btns:
@@ -77,8 +60,7 @@ def _safe_click(page, button_text, timeout=3000):
             except:
                 pass
             time.sleep(0.5)
-    return False, f"could not click button '{button_text}'"
-
+    return False, f"could not click {button_text}"
 
 def _process_one(page, email, phone):
     print("Open Website...")
@@ -109,7 +91,6 @@ def _process_one(page, email, phone):
 
     return True, "send_clicked"
 
-
 def start_processing(emails_path, phones_path):
     global _status, _stop_flag
     _stop_flag = False
@@ -118,7 +99,6 @@ def start_processing(emails_path, phones_path):
 
     emails = read_lines(emails_path)
     phones = read_lines(phones_path)
-
     if not phones:
         print("❌ phones.txt not found or empty. Stopping.")
         _status["running"] = False
@@ -129,7 +109,7 @@ def start_processing(emails_path, phones_path):
         pairs = [(f"demo{idx+1}@example.com", p) for idx, (_, p) in enumerate(pairs)]
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
 
@@ -137,7 +117,6 @@ def start_processing(emails_path, phones_path):
             if _stop_flag:
                 print("⛔ Stop requested. Worker stopping.")
                 break
-
             if not phone:
                 continue
 
@@ -149,14 +128,15 @@ def start_processing(emails_path, phones_path):
 
             append_log_row(timestamp, email, phone, status_text, msg)
             print(f"{'✅' if ok else '❌'} {status_text} | Phone: {phone} | Email: {email} | Info: {msg}")
-
             print("Waiting 15 sec....")
             for _ in range(15):
                 if _stop_flag:
                     break
                 time.sleep(1)
 
+            # Refresh page before next number
             try:
+                print("🔄 Refreshing page for next number...")
                 page.reload(timeout=8000)
             except:
                 pass
@@ -170,15 +150,12 @@ def start_processing(emails_path, phones_path):
     print("🏁 Worker finished.")
     _status["running"] = False
 
-
-def get_status():
-    return dict(_status)
-
-
 def stop_processing():
     global _stop_flag
     _stop_flag = True
 
+def get_status():
+    return dict(_status)
 
 if __name__ == "__main__":
-    start_processing("emails.txt", "phones.txt")
+    start_processing("emails.txt","phones.txt")
