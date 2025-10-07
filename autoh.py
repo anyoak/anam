@@ -69,10 +69,12 @@ def _process_one(page, email, phone):
     except Exception as e:
         return False, f"goto_error:{e}"
 
+    # Email fill
     print(f"Enter email: {email}")
     ok, msg = _safe_fill(page, "#email", email)
     if not ok:
         return False, f"email_fill_failed:{msg}"
+    time.sleep(2)  # ✅ wait 2 seconds after email fill
 
     ok, msg_click = _safe_click(page, "Continue")
     if not ok:
@@ -80,10 +82,12 @@ def _process_one(page, email, phone):
 
     time.sleep(1.2)
 
+    # Phone fill
     print(f"Enter phone: {phone}")
     ok, msg = _safe_fill(page, "#phone", phone)
     if not ok:
         return False, f"phone_fill_failed:{msg}"
+    time.sleep(2)  # ✅ wait 2 seconds after phone fill
 
     ok, msg_click = _safe_click(page, "Send verification code")
     if not ok:
