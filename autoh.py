@@ -11,8 +11,10 @@ _stop_flag = False  # manual stop flag
 URL = "https://pack.chromaawards.com/sign-in"
 LOG_PATH = Path("logs.csv")
 
+
 def _now_str():
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
 
 def read_lines(path):
     try:
@@ -21,8 +23,9 @@ def read_lines(path):
     except FileNotFoundError:
         return []
 
+
 def append_log_row(timestamp, email, phone, status, message):
-    header = ["timestamp","email","phone","status","message"]
+    header = ["timestamp", "email", "phone", "status", "message"]
     exists = LOG_PATH.exists()
     try:
         with open(LOG_PATH, "a", newline="", encoding="utf8") as f:
@@ -32,6 +35,7 @@ def append_log_row(timestamp, email, phone, status, message):
             writer.writerow([timestamp, email, phone, status, message])
     except Exception as e:
         print("Failed to write log:", e)
+
 
 def _safe_fill(page, selector, value, timeout=3000):
     tries = 0
@@ -50,6 +54,7 @@ def _safe_fill(page, selector, value, timeout=3000):
             except Exception:
                 time.sleep(0.5)
     return False, f"could not fill selector {selector}"
+
 
 def _safe_click(page, button_text, timeout=3000):
     tries = 0
@@ -74,12 +79,15 @@ def _safe_click(page, button_text, timeout=3000):
             time.sleep(0.5)
     return False, f"could not click button '{button_text}'"
 
+
 def _process_one(page, email, phone):
+    print("Open Website...")
     try:
         page.goto(URL, wait_until="domcontentloaded", timeout=15000)
     except Exception as e:
         return False, f"goto_error:{e}"
 
+    print(f"Enter email: {email}")
     ok, msg = _safe_fill(page, "#email", email)
     if not ok:
         return False, f"email_fill_failed:{msg}"
@@ -90,6 +98,7 @@ def _process_one(page, email, phone):
 
     time.sleep(1.2)
 
+    print(f"Enter phone: {phone}")
     ok, msg = _safe_fill(page, "#phone", phone)
     if not ok:
         return False, f"phone_fill_failed:{msg}"
@@ -99,6 +108,7 @@ def _process_one(page, email, phone):
         return False, f"send_click_failed:{msg_click}"
 
     return True, "send_clicked"
+
 
 def start_processing(emails_path, phones_path):
     global _status, _stop_flag
@@ -140,7 +150,7 @@ def start_processing(emails_path, phones_path):
             append_log_row(timestamp, email, phone, status_text, msg)
             print(f"{'✅' if ok else '❌'} {status_text} | Phone: {phone} | Email: {email} | Info: {msg}")
 
-            # wait 15 seconds between submissions
+            print("Waiting 15 sec....")
             for _ in range(15):
                 if _stop_flag:
                     break
@@ -160,9 +170,15 @@ def start_processing(emails_path, phones_path):
     print("🏁 Worker finished.")
     _status["running"] = False
 
+
 def get_status():
     return dict(_status)
+
 
 def stop_processing():
     global _stop_flag
     _stop_flag = True
+
+
+if __name__ == "__main__":
+    start_processing("emails.txt", "phones.txt")
