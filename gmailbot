@@ -1,0 +1,64 @@
+import imaplib
+import email
+import time
+import telebot
+
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+CHAT_ID = "YOUR_TELEGRAM_ID"
+
+EMAIL_USER = "your_email@gmail.com"
+EMAIL_PASS = "YOUR_GMAIL_APP_PASSWORD"
+IMAP_SERVER = "imap.gmail.com"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+def check_inbox():
+    try:
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+        mail.login(EMAIL_USER, EMAIL_PASS)
+        mail.select("inbox")
+
+        result, data = mail.search(None, "UNSEEN")  # Only unread emails
+        mail_ids = data[0].split()
+
+        for i in mail_ids:
+            result2, msg_data = mail.fetch(i, "(RFC822)")
+            raw_email = msg_data[0][1]
+            msg = email.message_from_bytes(raw_email)
+
+            subject = msg["Subject"] or "(No Subject)"
+            sender = msg["From"] or "(Unknown)"
+
+            text = ""
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain":
+                        try:
+                            text = part.get_payload(decode=True).decode(errors="ignore")
+                        except:
+                            text = "(Unable to read message)"
+            else:
+                try:
+                    text = msg.get_payload(decode=True).decode(errors="ignore")
+                except:
+                    text = "(Unable to read message)"
+
+            message = (
+                f"📩 *New Gmail Received*\n"
+                f"👤 From: `{sender}`\n"
+                f"📌 Subject: *{subject}*\n\n"
+                f"📝 Message:\n{text}"
+            )
+
+            bot.send_message(CHAT_ID, message, parse_mode="Markdown")
+
+        mail.logout()
+
+    except Exception as e:
+        print("Error:", e)
+
+
+# nonstop checking
+while True:
+    check_inbox()
+    time.sleep(10)   # check every 10 seconds
