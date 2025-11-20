@@ -82,12 +82,12 @@ def send_to_telegram(text: str):
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🤖 Number Buy", "url": "https://t.me/Atik203412"},
-                {"text": "✨ Support Group", "url": "https://t.me/atikmethod_zone"}
+                {"text": "🤖", "url": "https://t.me/professor_cry"},
+                {"text": "✨ Mail Bot", "url": "https://t.me/mailtwistbot"}
             ],
             [
-                {"text": "🔗 Main Channel", "url": "https://t.me/atik_method_zone"},
-                {"text": "🔗 BackUp Channel", "url": "https://t.me/+8REFroGEWNM5ZjE9"}
+                {"text": "🔗 Main Channel", "url": "https://t.me/mailtwist"},
+                {"text": " 📞 Inquiry", "url": "https://t.me/professor_cry"}
             ]
         ]
     }
