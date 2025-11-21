@@ -83,10 +83,10 @@ def send_to_telegram(text: str):
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🤖 Developer", "url": "https://t.me/professor_cry"}
+                {"text": "☎️ Available Number", "url": "https://t.me/XrTeamNamber"}
             ],
             [
-                {"text": "🔗 Main Channel", "url": "https://t.me/mailtwist"}
+                {"text": "🌟 Owner", "url": "https://t.me/XR9TG"}
             ]
         ]
     }
