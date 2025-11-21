@@ -82,10 +82,10 @@ def send_to_telegram(text: str):
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🤖 Developer", "url": "https://t.me/professor_cry"}
+                {"text": "☎️ Available Number", "url": "https://t.me/XrTeamNamber"}
             ],
             [
-                {"text": "🔗 Main Channel", "url": "https://t.me/mailtwist"}
+                {"text": "🌟 Owner", "url": "https://t.me/XR9TG"}
             ]
         ]
     }
@@ -155,13 +155,13 @@ def extract_sms(driver):
 
             formatted = (
                 f"**{country_flag} {country_name} {service} OTP Code Received! 🎉**\n"
-                f"━━━━━━━━━━━━━━\n"
+                f"**━━━━━━━━━━━━━━**\n"
                 f"**📞 Number:** **{masked_number}**\n"
                 f"**⚙️ Service:** **{service}**\n"
                 f"**🌍 Country:** **{country_flag} {country_name}**\n"
                 f"**⏳ Time:** **{timestamp.strftime('%Y-%m-%d %H:%M:%S')}**\n\n"
-                f"**🔐 OTP:** **{otp_code}**\n"
-                f"━━━━━━━━━━━━━━\n"
+                f"**🔐 OTP:** `{otp_code}`\n"
+                f"**━━━━━━━━━━━━━━\**n"
                 f"**💬 Full Message:**\n"
                 f"```{message.strip()}```"
             )
