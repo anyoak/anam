@@ -17,7 +17,7 @@ import pycountry
 # Configuration
 BOT_TOKEN = "8371638048:AAEHGvy-vYHmUFPXslg-2toZgOA_14osM9k"
 CHAT_IDS = ["-1002287664519", "-1003294791664", "-1002776098360"]
-SMS_URL = "http://139.99.63.204/ints/agent/SMSCDRStats"
+SMS_URL = "http://139.99.63.204/ints/client/SMSCDRStats"
 LOGIN_URL = "http://139.99.63.204/ints/login"
 TIMEZONE_OFFSET = 8
 
