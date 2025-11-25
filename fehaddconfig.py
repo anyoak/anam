@@ -126,16 +126,26 @@ def send_to_telegram(text: str, otp_code: str):
             print(f"[❌] Telegram request error for {chat_id}: {e}")
 
 def extract_sms(driver):
-    """Extract SMS messages from the website with automatic refresh"""
+    """Extract SMS messages from the website with automatic refresh only on SMS page"""
     global last_messages
     
     try:
-        # Refresh the page to get latest messages
-        driver.refresh()
-        print("[🔄] Page refreshed")
+        # Check if we're on SMS page, if not navigate to it
+        current_url = driver.current_url
+        if SMS_URL not in current_url:
+            print(f"[↪️] Redirecting to SMS page from {current_url}")
+            driver.get(SMS_URL)
+            time.sleep(3)
         
-        # Wait for page to load
-        time.sleep(3)
+        # Only refresh if we're on SMS page
+        if SMS_URL in driver.current_url:
+            # Refresh the page to get latest messages
+            driver.refresh()
+            print("[🔄] SMS page refreshed")
+            time.sleep(3)
+        else:
+            print(f"[⚠️] Not on SMS page, current URL: {driver.current_url}")
+            return
         
         soup = BeautifulSoup(driver.page_source, "html.parser")
         
@@ -219,10 +229,11 @@ def extract_sms(driver):
     except Exception as e:
         print(f"[❌] Failed to extract SMS: {e}")
 
-def wait_for_login(driver, timeout=180):
-    """Wait for manual login with improved detection"""
+def wait_for_login(driver, timeout=300):
+    """Wait for manual login without refreshing the page"""
     print("[*] Waiting for manual login...")
     print("[ℹ️] Please login manually in the browser window")
+    print("[⚠️] DO NOT CLOSE THE BROWSER WINDOW")
     
     start = time.time()
     last_url = driver.current_url
@@ -244,17 +255,18 @@ def wait_for_login(driver, timeout=180):
                 
             # Check if we're still on login page
             if "login" in current_url.lower():
-                print(f"[⏳] Still on login page... {int(timeout - (time.time() - start))}s remaining")
+                remaining = int(timeout - (time.time() - start))
+                print(f"[⏳] Waiting for login... {remaining}s remaining")
             else:
                 print(f"[✅] Redirected from login page!")
                 return True
                 
             last_url = current_url
-            time.sleep(3)
+            time.sleep(5)  # Increased sleep time to reduce CPU usage
             
         except Exception as e:
             print(f"[⚠️] Page check failed: {e}")
-            time.sleep(3)
+            time.sleep(5)
     
     print("[❌] Login timeout!")
     return False
@@ -280,7 +292,11 @@ def main():
     driver = launch_browser()
     
     try:
-        print(f"[🚀] Starting SMS Monitor for {SMS_URL}")
+        print(f"[🚀] Starting SMS Monitor")
+        print(f"[🔗] Login URL: {LOGIN_URL}")
+        print(f"[📱] SMS URL: {SMS_URL}")
+        
+        # Go to login page and wait for manual login
         driver.get(LOGIN_URL)
         
         if not wait_for_login(driver):
