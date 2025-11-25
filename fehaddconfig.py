@@ -1,35 +1,28 @@
 import time
 import re
 import requests
-import json
-from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import phonenumbers
-from phonenumbers import geocoder, carrier, timezone
+from phonenumbers import geocoder, region_code_for_number
 import pycountry
+import html
 
-# Configuration
-BOT_TOKEN = "8371638048:AAEHGvy-vYHmUFPXslg-2toZgOA_14osM9k"
-CHAT_IDS = ["-1002287664519", "-1003294791664", "-1002776098360"]
-SMS_URL = "http://139.99.63.204/ints/client/SMSCDRStats"
-LOGIN_URL = "http://139.99.63.204/ints/login"
-TIMEZONE_OFFSET = 8
+import config  # BOT_TOKEN, CHAT_ID, SMS_URL
 
 # Cache for sent messages
 last_messages = set()
+
 
 def mask_number(number: str) -> str:
     """Mask phone number middle 3 digits"""
     digits = re.sub(r"\D", "", number)
     if len(digits) > 6:
-        return digits[:5] + "***" + digits[-3:]
+        return digits[:4] + "***" + digits[-3:]
     return number
+
 
 def country_to_flag(country_code: str) -> str:
     """Convert ISO country code to emoji flag"""
@@ -37,28 +30,19 @@ def country_to_flag(country_code: str) -> str:
         return "🏳️"
     return "".join(chr(127397 + ord(c)) for c in country_code.upper())
 
+
 def detect_country(number: str):
-    """Detect country name + flag from number using phonenumbers library"""
+    """Detect country name + flag from number"""
     try:
-        # Parse the phone number
-        parsed_number = phonenumbers.parse(number, None)
-        country_code = phonenumbers.region_code_for_number(parsed_number)
-        
-        if country_code:
-            # Get country name using pycountry
-            country = pycountry.countries.get(alpha_2=country_code)
-            country_name = country.name if country else "Unknown"
-            country_flag = country_to_flag(country_code)
-            
-            return {
-                'name': country_name,
-                'flag': country_flag,
-                'code': country_code
-            }
-    except Exception as e:
-        print(f"Error detecting country for {number}: {e}")
-    
-    return {'name': 'Unknown', 'flag': '🏳️', 'code': ''}
+        parsed_number = phonenumbers.parse("+" + number, None)
+        region = region_code_for_number(parsed_number)
+        country = pycountry.countries.get(alpha_2=region)
+        if country:
+            return country.name, country_to_flag(region)
+    except:
+        pass
+    return "Unknown", "🏳️"
+
 
 def extract_otp(message: str) -> str:
     """Extract OTP code from message with improved pattern matching"""
@@ -91,138 +75,50 @@ def extract_otp(message: str) -> str:
     
     return "N/A"
 
-def send_to_telegram(text: str, otp_code: str):
-    """Send message with inline copy button to multiple groups"""
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    
-    # Create inline keyboard with only copy button using ⧉ icon
-    keyboard = {
-        "inline_keyboard": [
-            [
-                {
-                    "text": f"⧉ {otp_code}", 
-                    "callback_data": f"copy_otp_{otp_code}"
-                }
-            ]
-        ]
+
+def send_to_telegram(text: str):
+    """Send message without inline buttons"""
+    url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/sendMessage"
+
+    payload = {
+        "chat_id": config.CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
     }
 
-    # Send to all chat IDs
-    for chat_id in CHAT_IDS:
-        payload = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "Markdown",
-            "reply_markup": json.dumps(keyboard),
-        }
-
-        try:
-            res = requests.post(url, data=payload, timeout=10)
-            if res.status_code == 200:
-                print(f"[✅] Telegram message sent to {chat_id}.")
-            else:
-                print(f"[❌] Failed to send to {chat_id}: {res.status_code} - {res.text}")
-        except requests.exceptions.RequestException as e:
-            print(f"[❌] Telegram request error for {chat_id}: {e}")
-
-def is_logged_in(driver):
-    """Check if user is logged in by verifying current URL and page content"""
     try:
-        current_url = driver.current_url
-        page_source = driver.page_source.lower()
-        
-        # If we're not on login page and there are signs of successful login
-        if "login" not in current_url.lower():
-            # Check for logout button or dashboard elements
-            if any(indicator in page_source for indicator in ["logout", "log out", "dashboard", "welcome", "main", "agent"]):
-                return True
-        return False
-    except Exception as e:
-        print(f"[⚠️] Error checking login status: {e}")
-        return False
-
-def wait_for_login(driver, timeout=300):
-    """Wait for manual login without any monitoring"""
-    print("[*] Waiting for manual login...")
-    print("[ℹ️] Please login manually in the browser window")
-    print("[⚠️] DO NOT CLOSE THE BROWSER WINDOW")
-    
-    start = time.time()
-    
-    while time.time() - start < timeout:
-        try:
-            # Check if logged in
-            if is_logged_in(driver):
-                print("[✅] Login successful detected!")
-                return True
-                
-            # Show waiting message every 10 seconds
-            elapsed = int(time.time() - start)
-            if elapsed % 10 == 0:
-                remaining = int(timeout - elapsed)
-                print(f"[⏳] Waiting for login... {remaining}s remaining")
-                
-            time.sleep(1)
-            
-        except Exception as e:
-            print(f"[⚠️] Login check failed: {e}")
-            time.sleep(5)
-    
-    print("[❌] Login timeout!")
-    return False
-
-def navigate_to_sms_page(driver):
-    """Navigate to SMS page after successful login"""
-    try:
-        print(f"[↪️] Navigating to SMS page: {SMS_URL}")
-        driver.get(SMS_URL)
-        time.sleep(5)  # Wait for page to load
-        
-        # Verify we reached SMS page
-        if SMS_URL in driver.current_url:
-            print("[✅] Successfully reached SMS page")
-            return True
+        res = requests.post(url, json=payload, timeout=10)
+        if res.status_code == 200:
+            print("[✅] Telegram message sent.")
         else:
-            print(f"[⚠️] Not on SMS page. Current URL: {driver.current_url}")
-            return False
-    except Exception as e:
-        print(f"[❌] Failed to navigate to SMS page: {e}")
-        return False
+            print(f"[❌] Failed: {res.status_code} - {res.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"[❌] Telegram request error: {e}")
 
-def extract_sms_data(driver):
-    """Extract SMS data from the current page (without refresh)"""
+
+def extract_sms(driver):
     global last_messages
-    
     try:
+        driver.get(config.SMS_URL)
+        time.sleep(2)
         soup = BeautifulSoup(driver.page_source, "html.parser")
-        
-        # Find table headers to identify columns
         headers = soup.find_all("th")
-        print(f"[ℹ️] Found {len(headers)} headers")
 
         number_idx = service_idx = sms_idx = None
         for idx, th in enumerate(headers):
-            text = th.get_text(strip=True).lower()
-            aria_label = th.get("aria-label", "").lower()
-            
-            if "number" in text or "number" in aria_label:
+            label = th.get("aria-label", "").lower()
+            if "number" in label:
                 number_idx = idx
-            elif "service" in text or "cli" in text or "service" in aria_label or "cli" in aria_label:
+            elif "cli" in label or "service" in label:
                 service_idx = idx
-            elif "sms" in text or "message" in text or "sms" in aria_label or "message" in aria_label:
+            elif "sms" in label:
                 sms_idx = idx
 
         if None in (number_idx, service_idx, sms_idx):
             print("[⚠️] Could not detect all required columns.")
-            if len(headers) >= 3:
-                number_idx, service_idx, sms_idx = 0, 1, 2
-                print(f"[🔍] Using default indices: number={number_idx}, service={service_idx}, sms={sms_idx}")
-            else:
-                return
+            return
 
         rows = soup.find_all("tr")[1:]  # skip header row
-        new_messages_found = False
-        
         for row in rows:
             cols = row.find_all("td")
             if len(cols) <= max(number_idx, service_idx, sms_idx):
@@ -232,7 +128,6 @@ def extract_sms_data(driver):
             service = cols[service_idx].get_text(strip=True) or "Unknown"
             message = cols[sms_idx].get_text(strip=True)
 
-            # Skip if no message or already processed
             if not message or message in last_messages:
                 continue
             if message.strip() in ("0", "Unknown") or (
@@ -240,118 +135,50 @@ def extract_sms_data(driver):
             ):
                 continue
 
-            # Add to cache and process
             last_messages.add(message)
-            new_messages_found = True
-            
-            # Limit cache size
-            if len(last_messages) > 100:
-                last_messages.pop()
+            timestamp = datetime.utcnow() + timedelta(hours=6)  # Dhaka time
 
             otp_code = extract_otp(message)
-            country_info = detect_country(number)
+            country_name, country_flag = detect_country(number)
             masked_number = mask_number(number)
 
-            # Format message as per requirement
+            # HTML formatted message with monospace for OTP and all text bold
             formatted = (
-                f"{country_info['flag']} {country_info['name']} {service} Of {masked_number} Captured!\n"
-                f"```{message.strip()}```"
+                f"<b>{country_flag} {country_name} {service} OTP Code Received! 🎉</b>\n"
+                f"<b>━━━━━━━━━━━━━━</b>\n"
+                f"<b>📞 Number: {masked_number}</b>\n"
+                f"<b>⚙️ Service: {service}</b>\n"
+                f"<b>🌍 Country: {country_flag} {country_name}</b>\n"
+                f"<b>⏳ Time: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}</b>\n\n"
+                f"<b>🔐 OTP: <code>{otp_code}</code></b>\n"
+                f"<b>━━━━━━━━━━━━━━</b>\n"
+                f"<b>💬 Full Message:</b>\n"
+                f"<code>```{html.escape(message.strip())}```</code>"
             )
 
-            if otp_code != "N/A":
-                send_to_telegram(formatted, otp_code)
-                print(f"[📱] New SMS captured: {country_info['name']} - {service} - OTP: {otp_code}")
-            else:
-                print(f"[ℹ️] SMS captured but no OTP found: {country_info['name']} - {service}")
-
-        if not new_messages_found:
-            print("[⏳] No new messages found")
-            
-        return new_messages_found
+            send_to_telegram(formatted)
 
     except Exception as e:
-        print(f"[❌] Failed to extract SMS: {e}")
-        return False
+        print(f"[ERR] Failed to extract SMS: {e}")
 
-def monitor_sms(driver):
-    """Main monitoring function that only runs after successful login and navigation to SMS page"""
-    monitor_count = 0
-    
-    print("[🚀] Starting SMS monitoring...")
-    print(f"[📢] Broadcasting to {len(CHAT_IDS)} groups")
-    
-    while True:
-        try:
-            monitor_count += 1
-            print(f"\n[🔄] Monitoring cycle #{monitor_count} - {datetime.now().strftime('%H:%M:%S')}")
-            
-            # Refresh SMS page to get latest messages
-            driver.refresh()
-            print("[🔄] SMS page refreshed")
-            time.sleep(3)
-            
-            # Extract SMS data
-            extract_sms_data(driver)
-            
-            # Wait before next check
-            time.sleep(5)
-            
-        except KeyboardInterrupt:
-            print("\n[🛑] Monitoring stopped by user")
-            break
-        except Exception as e:
-            print(f"[❌] Monitoring error: {e}")
-            time.sleep(10)
-
-def launch_browser():
-    """Setup Chrome driver with options"""
-    print("[*] Launching Chrome browser...")
-
-    chrome_options = Options()
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    # Uncomment below line to run in headless mode
-    # chrome_options.add_argument("--headless=new")
-
-    service = Service()
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
-
-def main():
-    driver = launch_browser()
-    
-    try:
-        print(f"[🚀] Starting SMS Monitor")
-        print(f"[🔗] Login URL: {LOGIN_URL}")
-        
-        # Step 1: Go to login page
-        driver.get(LOGIN_URL)
-        print("[1/3] Opened login page")
-        
-        # Step 2: Wait for manual login (NO MONITORING HERE)
-        print("[2/3] Waiting for manual login...")
-        if not wait_for_login(driver):
-            print("[❌] Login failed. Exiting...")
-            return
-        
-        # Step 3: Navigate to SMS page
-        print("[3/3] Navigating to SMS page...")
-        if not navigate_to_sms_page(driver):
-            print("[❌] Failed to reach SMS page. Exiting...")
-            return
-        
-        # Step 4: ONLY NOW start monitoring
-        monitor_sms(driver)
-            
-    except Exception as e:
-        print(f"[❌] Critical error: {e}")
-    finally:
-        print("[*] Closing browser...")
-        driver.quit()
-        print("[✅] Browser closed successfully")
 
 if __name__ == "__main__":
-    main()
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--start-maximized")
+    # chrome_options.add_argument("--headless=new")
+
+    driver = webdriver.Chrome(options=chrome_options)
+
+    try:
+        print("[*] SMS Extractor running. Press Ctrl+C to stop.")
+        while True:
+            extract_sms(driver)
+            time.sleep(10)
+    except KeyboardInterrupt:
+        print("\n[🛑] Stopped by user.")
+    finally:
+        driver.quit()
+        print("[*] Browser closed.")
