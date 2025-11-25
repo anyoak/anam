@@ -2,7 +2,7 @@ import time
 import re
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -125,28 +125,75 @@ def send_to_telegram(text: str, otp_code: str):
         except requests.exceptions.RequestException as e:
             print(f"[❌] Telegram request error for {chat_id}: {e}")
 
-def extract_sms(driver):
-    """Extract SMS messages from the website with automatic refresh only on SMS page"""
+def is_logged_in(driver):
+    """Check if user is logged in by verifying current URL and page content"""
+    try:
+        current_url = driver.current_url
+        page_source = driver.page_source.lower()
+        
+        # If we're not on login page and there are signs of successful login
+        if "login" not in current_url.lower():
+            # Check for logout button or dashboard elements
+            if any(indicator in page_source for indicator in ["logout", "log out", "dashboard", "welcome", "main", "agent"]):
+                return True
+        return False
+    except Exception as e:
+        print(f"[⚠️] Error checking login status: {e}")
+        return False
+
+def wait_for_login(driver, timeout=300):
+    """Wait for manual login without any monitoring"""
+    print("[*] Waiting for manual login...")
+    print("[ℹ️] Please login manually in the browser window")
+    print("[⚠️] DO NOT CLOSE THE BROWSER WINDOW")
+    
+    start = time.time()
+    
+    while time.time() - start < timeout:
+        try:
+            # Check if logged in
+            if is_logged_in(driver):
+                print("[✅] Login successful detected!")
+                return True
+                
+            # Show waiting message every 10 seconds
+            elapsed = int(time.time() - start)
+            if elapsed % 10 == 0:
+                remaining = int(timeout - elapsed)
+                print(f"[⏳] Waiting for login... {remaining}s remaining")
+                
+            time.sleep(1)
+            
+        except Exception as e:
+            print(f"[⚠️] Login check failed: {e}")
+            time.sleep(5)
+    
+    print("[❌] Login timeout!")
+    return False
+
+def navigate_to_sms_page(driver):
+    """Navigate to SMS page after successful login"""
+    try:
+        print(f"[↪️] Navigating to SMS page: {SMS_URL}")
+        driver.get(SMS_URL)
+        time.sleep(5)  # Wait for page to load
+        
+        # Verify we reached SMS page
+        if SMS_URL in driver.current_url:
+            print("[✅] Successfully reached SMS page")
+            return True
+        else:
+            print(f"[⚠️] Not on SMS page. Current URL: {driver.current_url}")
+            return False
+    except Exception as e:
+        print(f"[❌] Failed to navigate to SMS page: {e}")
+        return False
+
+def extract_sms_data(driver):
+    """Extract SMS data from the current page (without refresh)"""
     global last_messages
     
     try:
-        # Check if we're on SMS page, if not navigate to it
-        current_url = driver.current_url
-        if SMS_URL not in current_url:
-            print(f"[↪️] Redirecting to SMS page from {current_url}")
-            driver.get(SMS_URL)
-            time.sleep(3)
-        
-        # Only refresh if we're on SMS page
-        if SMS_URL in driver.current_url:
-            # Refresh the page to get latest messages
-            driver.refresh()
-            print("[🔄] SMS page refreshed")
-            time.sleep(3)
-        else:
-            print(f"[⚠️] Not on SMS page, current URL: {driver.current_url}")
-            return
-        
         soup = BeautifulSoup(driver.page_source, "html.parser")
         
         # Find table headers to identify columns
@@ -160,17 +207,13 @@ def extract_sms(driver):
             
             if "number" in text or "number" in aria_label:
                 number_idx = idx
-                print(f"[🔍] Number column found at index {idx}")
             elif "service" in text or "cli" in text or "service" in aria_label or "cli" in aria_label:
                 service_idx = idx
-                print(f"[🔍] Service column found at index {idx}")
             elif "sms" in text or "message" in text or "sms" in aria_label or "message" in aria_label:
                 sms_idx = idx
-                print(f"[🔍] SMS column found at index {idx}")
 
         if None in (number_idx, service_idx, sms_idx):
-            print("[⚠️] Could not detect all required columns. Trying alternative method...")
-            # Alternative: try to find by position if standard structure
+            print("[⚠️] Could not detect all required columns.")
             if len(headers) >= 3:
                 number_idx, service_idx, sms_idx = 0, 1, 2
                 print(f"[🔍] Using default indices: number={number_idx}, service={service_idx}, sms={sms_idx}")
@@ -178,8 +221,6 @@ def extract_sms(driver):
                 return
 
         rows = soup.find_all("tr")[1:]  # skip header row
-        print(f"[ℹ️] Found {len(rows)} rows to process")
-
         new_messages_found = False
         
         for row in rows:
@@ -225,51 +266,42 @@ def extract_sms(driver):
 
         if not new_messages_found:
             print("[⏳] No new messages found")
+            
+        return new_messages_found
 
     except Exception as e:
         print(f"[❌] Failed to extract SMS: {e}")
+        return False
 
-def wait_for_login(driver, timeout=300):
-    """Wait for manual login without refreshing the page"""
-    print("[*] Waiting for manual login...")
-    print("[ℹ️] Please login manually in the browser window")
-    print("[⚠️] DO NOT CLOSE THE BROWSER WINDOW")
+def monitor_sms(driver):
+    """Main monitoring function that only runs after successful login and navigation to SMS page"""
+    monitor_count = 0
     
-    start = time.time()
-    last_url = driver.current_url
+    print("[🚀] Starting SMS monitoring...")
+    print(f"[📢] Broadcasting to {len(CHAT_IDS)} groups")
     
-    while time.time() - start < timeout:
+    while True:
         try:
-            current_url = driver.current_url
+            monitor_count += 1
+            print(f"\n[🔄] Monitoring cycle #{monitor_count} - {datetime.now().strftime('%H:%M:%S')}")
             
-            # Check if URL changed (indicating successful login redirect)
-            if current_url != last_url and "login" not in current_url.lower():
-                print("[✅] Login detected via URL change!")
-                return True
+            # Refresh SMS page to get latest messages
+            driver.refresh()
+            print("[🔄] SMS page refreshed")
+            time.sleep(3)
             
-            # Check for logout button or successful login indicators
-            page_text = driver.page_source.lower()
-            if any(indicator in page_text for indicator in ["logout", "log out", "dashboard", "welcome", "main"]):
-                print("[✅] Login successful!")
-                return True
-                
-            # Check if we're still on login page
-            if "login" in current_url.lower():
-                remaining = int(timeout - (time.time() - start))
-                print(f"[⏳] Waiting for login... {remaining}s remaining")
-            else:
-                print(f"[✅] Redirected from login page!")
-                return True
-                
-            last_url = current_url
-            time.sleep(5)  # Increased sleep time to reduce CPU usage
+            # Extract SMS data
+            extract_sms_data(driver)
             
-        except Exception as e:
-            print(f"[⚠️] Page check failed: {e}")
+            # Wait before next check
             time.sleep(5)
-    
-    print("[❌] Login timeout!")
-    return False
+            
+        except KeyboardInterrupt:
+            print("\n[🛑] Monitoring stopped by user")
+            break
+        except Exception as e:
+            print(f"[❌] Monitoring error: {e}")
+            time.sleep(10)
 
 def launch_browser():
     """Setup Chrome driver with options"""
@@ -284,7 +316,7 @@ def launch_browser():
     # Uncomment below line to run in headless mode
     # chrome_options.add_argument("--headless=new")
 
-    service = Service()  # You can specify executable_path if needed
+    service = Service()
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
@@ -294,34 +326,25 @@ def main():
     try:
         print(f"[🚀] Starting SMS Monitor")
         print(f"[🔗] Login URL: {LOGIN_URL}")
-        print(f"[📱] SMS URL: {SMS_URL}")
         
-        # Go to login page and wait for manual login
+        # Step 1: Go to login page
         driver.get(LOGIN_URL)
+        print("[1/3] Opened login page")
         
+        # Step 2: Wait for manual login (NO MONITORING HERE)
+        print("[2/3] Waiting for manual login...")
         if not wait_for_login(driver):
             print("[❌] Login failed. Exiting...")
-            driver.quit()
             return
-
-        print("[✅] Login successful! Starting OTP monitoring...")
-        print(f"[📢] Broadcasting to {len(CHAT_IDS)} groups")
         
-        # Navigate to SMS page after login
-        driver.get(SMS_URL)
-        time.sleep(3)
+        # Step 3: Navigate to SMS page
+        print("[3/3] Navigating to SMS page...")
+        if not navigate_to_sms_page(driver):
+            print("[❌] Failed to reach SMS page. Exiting...")
+            return
         
-        monitor_count = 0
-        try:
-            while True:
-                monitor_count += 1
-                print(f"\n[🔄] Monitoring cycle #{monitor_count} - {datetime.now().strftime('%H:%M:%S')}")
-                
-                extract_sms(driver)
-                time.sleep(5)  # Wait 5 seconds between checks
-                
-        except KeyboardInterrupt:
-            print("\n[🛑] Monitoring stopped by user")
+        # Step 4: ONLY NOW start monitoring
+        monitor_sms(driver)
             
     except Exception as e:
         print(f"[❌] Critical error: {e}")
