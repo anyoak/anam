@@ -1,20 +1,22 @@
 import time
 import re
 import requests
-from bs4 import BeautifulSoup
+import json
 from datetime import datetime, timedelta
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 import pycountry
-import html
-import json
 
 # Configuration
 BOT_TOKEN = "8371638048:AAEHGvy-vYHmUFPXslg-2toZgOA_14osM9k"
-CHAT_IDS = ["-1002287664519", "-1003294791664", "-1002776098360"]  # List of chat IDs
+CHAT_IDS = ["-1002287664519", "-1003294791664", "-1002776098360"]
 SMS_URL = "http://139.99.63.204/ints/agent/SMSCDRStats"
 LOGIN_URL = "http://139.99.63.204/ints/login"
 TIMEZONE_OFFSET = 8
@@ -123,32 +125,18 @@ def send_to_telegram(text: str, otp_code: str):
         except requests.exceptions.RequestException as e:
             print(f"[❌] Telegram request error for {chat_id}: {e}")
 
-def login_to_site(driver):
-    """Login to the SMS site if required"""
-    try:
-        driver.get(LOGIN_URL)
-        time.sleep(2)
-        
-        # Check if login is required by looking for login form elements
-        if "login" in driver.title.lower() or driver.find_elements(By.NAME, "username"):
-            print("[🔐] Login required. Please implement login logic.")
-            # You'll need to add your login credentials and form submission here
-            # Example:
-            # username_field = driver.find_element(By.NAME, "username")
-            # password_field = driver.find_element(By.NAME, "password")
-            # username_field.send_keys("your_username")
-            # password_field.send_keys("your_password")
-            # driver.find_element(By.XPATH, "//button[@type='submit']").click()
-            # time.sleep(2)
-            
-    except Exception as e:
-        print(f"[❌] Login check failed: {e}")
-
 def extract_sms(driver):
+    """Extract SMS messages from the website with automatic refresh"""
     global last_messages
+    
     try:
-        driver.get(SMS_URL)
+        # Refresh the page to get latest messages
+        driver.refresh()
+        print("[🔄] Page refreshed")
+        
+        # Wait for page to load
         time.sleep(3)
+        
         soup = BeautifulSoup(driver.page_source, "html.parser")
         
         # Find table headers to identify columns
@@ -182,6 +170,8 @@ def extract_sms(driver):
         rows = soup.find_all("tr")[1:]  # skip header row
         print(f"[ℹ️] Found {len(rows)} rows to process")
 
+        new_messages_found = False
+        
         for row in rows:
             cols = row.find_all("td")
             if len(cols) <= max(number_idx, service_idx, sms_idx):
@@ -201,6 +191,7 @@ def extract_sms(driver):
 
             # Add to cache and process
             last_messages.add(message)
+            new_messages_found = True
             
             # Limit cache size
             if len(last_messages) > 100:
@@ -222,36 +213,106 @@ def extract_sms(driver):
             else:
                 print(f"[ℹ️] SMS captured but no OTP found: {country_info['name']} - {service}")
 
+        if not new_messages_found:
+            print("[⏳] No new messages found")
+
     except Exception as e:
         print(f"[❌] Failed to extract SMS: {e}")
 
-def setup_driver():
+def wait_for_login(driver, timeout=180):
+    """Wait for manual login with improved detection"""
+    print("[*] Waiting for manual login...")
+    print("[ℹ️] Please login manually in the browser window")
+    
+    start = time.time()
+    last_url = driver.current_url
+    
+    while time.time() - start < timeout:
+        try:
+            current_url = driver.current_url
+            
+            # Check if URL changed (indicating successful login redirect)
+            if current_url != last_url and "login" not in current_url.lower():
+                print("[✅] Login detected via URL change!")
+                return True
+            
+            # Check for logout button or successful login indicators
+            page_text = driver.page_source.lower()
+            if any(indicator in page_text for indicator in ["logout", "log out", "dashboard", "welcome", "main"]):
+                print("[✅] Login successful!")
+                return True
+                
+            # Check if we're still on login page
+            if "login" in current_url.lower():
+                print(f"[⏳] Still on login page... {int(timeout - (time.time() - start))}s remaining")
+            else:
+                print(f"[✅] Redirected from login page!")
+                return True
+                
+            last_url = current_url
+            time.sleep(3)
+            
+        except Exception as e:
+            print(f"[⚠️] Page check failed: {e}")
+            time.sleep(3)
+    
+    print("[❌] Login timeout!")
+    return False
+
+def launch_browser():
     """Setup Chrome driver with options"""
+    print("[*] Launching Chrome browser...")
+
     chrome_options = Options()
+    chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--headless=new")  # Remove this line if you want to see browser
-    
-    driver = webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    # Uncomment below line to run in headless mode
+    # chrome_options.add_argument("--headless=new")
+
+    service = Service()  # You can specify executable_path if needed
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-if __name__ == "__main__":
-    driver = setup_driver()
+def main():
+    driver = launch_browser()
     
     try:
-        print("[🚀] SMS Extractor running. Press Ctrl+C to stop.")
+        print(f"[🚀] Starting SMS Monitor for {SMS_URL}")
+        driver.get(LOGIN_URL)
+        
+        if not wait_for_login(driver):
+            print("[❌] Login failed. Exiting...")
+            driver.quit()
+            return
+
+        print("[✅] Login successful! Starting OTP monitoring...")
         print(f"[📢] Broadcasting to {len(CHAT_IDS)} groups")
         
-        # Check login first
-        login_to_site(driver)
+        # Navigate to SMS page after login
+        driver.get(SMS_URL)
+        time.sleep(3)
         
-        while True:
-            extract_sms(driver)
-            time.sleep(10)
-    except KeyboardInterrupt:
-        print("\n[🛑] Stopped by user.")
+        monitor_count = 0
+        try:
+            while True:
+                monitor_count += 1
+                print(f"\n[🔄] Monitoring cycle #{monitor_count} - {datetime.now().strftime('%H:%M:%S')}")
+                
+                extract_sms(driver)
+                time.sleep(5)  # Wait 5 seconds between checks
+                
+        except KeyboardInterrupt:
+            print("\n[🛑] Monitoring stopped by user")
+            
+    except Exception as e:
+        print(f"[❌] Critical error: {e}")
     finally:
+        print("[*] Closing browser...")
         driver.quit()
-        print("[✅] Browser closed.")
+        print("[✅] Browser closed successfully")
+
+if __name__ == "__main__":
+    main()
