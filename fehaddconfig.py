@@ -3,14 +3,12 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 import phonenumbers
 from phonenumbers import geocoder, region_code_for_number
 import pycountry
 import html
 
-import config  # BOT_TOKEN, CHAT_ID, SMS_URL
+import config  # BOT_TOKEN, CHAT_IDS, SMS_URL
 
 # Cache for sent messages
 last_messages = set()
@@ -77,23 +75,25 @@ def extract_otp(message: str) -> str:
 
 
 def send_to_telegram(text: str):
-    """Send message without inline buttons"""
+    """Send message to multiple chat IDs"""
     url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/sendMessage"
 
     payload = {
-        "chat_id": config.CHAT_ID,
         "text": text,
         "parse_mode": "HTML",
     }
 
-    try:
-        res = requests.post(url, json=payload, timeout=10)
-        if res.status_code == 200:
-            print("[✅] Telegram message sent.")
-        else:
-            print(f"[❌] Failed: {res.status_code} - {res.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"[❌] Telegram request error: {e}")
+    # Send to all chat IDs
+    for chat_id in config.CHAT_IDS:
+        try:
+            payload["chat_id"] = chat_id
+            res = requests.post(url, json=payload, timeout=10)
+            if res.status_code == 200:
+                print(f"[✅] Telegram message sent to {chat_id}.")
+            else:
+                print(f"[❌] Failed to send to {chat_id}: {res.status_code} - {res.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"[❌] Telegram request error for {chat_id}: {e}")
 
 
 def extract_sms(driver):
@@ -136,7 +136,7 @@ def extract_sms(driver):
                 continue
 
             last_messages.add(message)
-            timestamp = datetime.utcnow() + timedelta(hours=6)  # Dhaka time
+            timestamp = datetime.utcnow() + timedelta(hours=config.TIMEZONE_OFFSET)
 
             otp_code = extract_otp(message)
             country_name, country_flag = detect_country(number)
@@ -153,32 +153,10 @@ def extract_sms(driver):
                 f"<b>🔐 OTP: <code>{otp_code}</code></b>\n"
                 f"<b>━━━━━━━━━━━━━━</b>\n"
                 f"<b>💬 Full Message:</b>\n"
-                f"<code>```{html.escape(message.strip())}```</code>"
+                f"<pre>{html.escape(message.strip())}</pre>"
             )
 
             send_to_telegram(formatted)
 
     except Exception as e:
         print(f"[ERR] Failed to extract SMS: {e}")
-
-
-if __name__ == "__main__":
-    chrome_options = Options()
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--start-maximized")
-    # chrome_options.add_argument("--headless=new")
-
-    driver = webdriver.Chrome(options=chrome_options)
-
-    try:
-        print("[*] SMS Extractor running. Press Ctrl+C to stop.")
-        while True:
-            extract_sms(driver)
-            time.sleep(10)
-    except KeyboardInterrupt:
-        print("\n[🛑] Stopped by user.")
-    finally:
-        driver.quit()
-        print("[*] Browser closed.")
