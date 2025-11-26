@@ -370,11 +370,7 @@ def show_main_menu(chat_id, user_id):
             btn = types.InlineKeyboardButton(btn_text, callback_data=f"country_{country_name}")
             markup.add(btn)
         
-        # Add optional channel buttons for promotion (not required)
-        promo_markup = types.InlineKeyboardMarkup()
-        main_btn = types.InlineKeyboardButton("📢 Our Channel", url=f"https://t.me/{MAIN_CHANNEL[1:]}")
-        otp_btn = types.InlineKeyboardButton("🔑 OTP Channel", url=f"https://t.me/{OTP_CHANNEL[1:]}")
-        promo_markup.row(main_btn, otp_btn)
+        # Add optional channel buttons for promotion (not required
         
         if is_admin(user_id):
             admin_btn = types.InlineKeyboardButton("🔧 Admin Panel", callback_data="admin_panel")
@@ -551,7 +547,7 @@ def process_callback(call):
         
         markup = types.InlineKeyboardMarkup()
         change_btn = types.InlineKeyboardButton("🔄 Change Number", callback_data=f"change_{country}")
-        otp_btn = types.InlineKeyboardButton("🔑 SEE OTP", url=f"https://t.me/{OTP_CHANNEL[1:]}")
+        otp_btn = types.InlineKeyboardButton("🔑 SEE OTP", url=f"https://t.me/OrangeTrack")
         back_btn = types.InlineKeyboardButton("⬅️ Back to Menu", callback_data="back_to_countries")
         
         markup.row(change_btn)
